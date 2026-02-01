@@ -1,205 +1,385 @@
-import streamlit as st
-import google.generativeai as genai
-import json
-import os
-import re
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  BookOpen, 
+  RotateCw, 
+  Volume2, 
+  ChevronLeft, 
+  ChevronRight, 
+  LayoutGrid, 
+  CheckCircle2, 
+  Upload,
+  Trophy,
+  BrainCircuit,
+  Sparkles,
+  Loader2,
+  MessageSquareQuote,
+  Lightbulb,
+  Globe
+} from 'lucide-react';
 
-# --- 页面配置 ---
-st.set_page_config(page_title="语言 Master - AI 学习终端", page_icon="🌐", layout="centered")
+// 语言配置常量
+const LANGUAGE_CONFIG = {
+  ko: { name: '韩语', code: 'ko-KR', label: '韩文', prompt: '资深的韩语老师' },
+  th: { name: '泰语', code: 'th-TH', label: '泰文', prompt: '资深的泰语老师' },
+  ja: { name: '日语', code: 'ja-JP', label: '日语', prompt: '资深的日语老师' }
+};
 
-# --- 样式美化 ---
-st.markdown("""
-    <style>
-    .main {
-        background-color: #f8f9fa;
+const App = () => {
+  // --- 基础状态 ---
+  const [currentLang, setCurrentLang] = useState('ko'); 
+  const [words, setWords] = useState([
+    { word: "안녕하세요", meaning: "你好", example: "안녕하세요, 만나서 반갑습니다.", example_cn: "你好，很高兴见到你。" },
+    { word: "감사합니다", meaning: "谢谢", example: "도와주셔서 감사합니다.", example_cn: "谢谢你的帮助。" }
+  ]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [viewMode, setViewMode] = useState('flashcard');
+  const [score, setScore] = useState({ correct: 0, total: 0 });
+  const [quizOptions, setQuizOptions] = useState([]);
+
+  // --- Gemini API 状态 ---
+  const [aiAnalysis, setAiAnalysis] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const apiKey = ""; // 运行时由环境提供
+
+  const langMeta = useMemo(() => LANGUAGE_CONFIG[currentLang], [currentLang]);
+
+  // 语音合成功能
+  const speak = (text) => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = langMeta.code;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // 调用 Gemini API
+  const callGemini = async (prompt) => {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+    
+    const fetchWithRetry = async (retries = 0) => {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { responseMimeType: "application/json" }
+          })
+        });
+
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
+        const result = await response.json();
+        const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+        return JSON.parse(text || "{}");
+      } catch (error) {
+        if (retries < 5) {
+          const delay = Math.pow(2, retries) * 1000;
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return fetchWithRetry(retries + 1);
+        }
+        throw error;
+      }
+    };
+
+    return fetchWithRetry();
+  };
+
+  // 获取 AI 深度解析
+  const fetchAiAnalysis = async () => {
+    if (isAnalyzing) return;
+    setIsAnalyzing(true);
+    setAiAnalysis(null);
+    
+    const current = words[currentIndex];
+    const prompt = `
+      作为一个${langMeta.prompt}，请为${langMeta.name}单词 "${current.word}" (含义: ${current.meaning}) 提供深度学习分析。
+      请以 JSON 格式返回以下字段：
+      - root: 词根、词源或字形简析
+      - mnemonic: 趣味助记口诀（可以是谐音或联想）
+      - scenario: 一个简短的${langMeta.name}对话场景，包含该词
+      - scenario_cn: 对话场景的中文翻译
+      
+      仅返回 JSON 格式。
+    `;
+
+    try {
+      const data = await callGemini(prompt);
+      setAiAnalysis(data);
+    } catch (error) {
+      console.error("AI Analysis failed", error);
+    } finally {
+      setIsAnalyzing(false);
     }
-    .stButton>button {
-        width: 100%;
-        border-radius: 12px;
-        height: 3em;
-        font-weight: bold;
+  };
+
+  useEffect(() => {
+    setAiAnalysis(null);
+  }, [currentIndex, currentLang]);
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const json = JSON.parse(event.target.result);
+          if (Array.isArray(json)) {
+            setWords(json);
+            setCurrentIndex(0);
+          }
+        } catch (err) {
+          console.error("Upload failed", err);
+        }
+      };
+      reader.readAsText(file);
     }
-    .word-card {
-        background-color: white;
-        padding: 40px;
-        border-radius: 25px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-        text-align: center;
-        border: 1px solid #eee;
-        margin-bottom: 20px;
+  };
+
+  const generateQuiz = () => {
+    if (words.length < 4) return;
+    const current = words[currentIndex];
+    const others = words.filter(w => w.word !== current.word)
+      .sort(() => 0.5 - Math.random())
+      .slice(0, 3);
+    const options = [...others, current].sort(() => 0.5 - Math.random());
+    setQuizOptions(options);
+  };
+
+  useEffect(() => {
+    if (viewMode === 'quiz') generateQuiz();
+  }, [currentIndex, viewMode, words]);
+
+  const handleQuizAnswer = (selectedWord) => {
+    if (selectedWord === words[currentIndex].word) {
+      setScore(s => ({ correct: s.correct + 1, total: s.total + 1 }));
+      setTimeout(nextCard, 1000);
+    } else {
+      setScore(s => ({ ...s, total: s.total + 1 }));
     }
-    .word-text { font-size: 64px; font-weight: bold; color: #1e293b; margin-bottom: 10px; }
-    .meaning-text { font-size: 40px; font-weight: bold; color: #4f46e5; }
-    .example-box {
-        background-color: #f1f5f9;
-        padding: 15px;
-        border-radius: 15px;
-        margin-top: 20px;
-        font-style: italic;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+  };
 
-# --- 语言配置 ---
-LANG_CONFIG = {
-    "韩语": {"code": "ko-KR", "prompt": "资深的韩语老师", "label": "韩文", "file": "words_ko.json"},
-    "泰语": {"code": "th-TH", "prompt": "资深的泰语老师", "label": "泰文", "file": "words_th.json"},
-    "日语": {"code": "ja-JP", "prompt": "资深的日语老师", "label": "日语", "file": "words_ja.json"}
-}
+  const nextCard = () => {
+    setIsFlipped(false);
+    setCurrentIndex((prev) => (prev + 1) % words.length);
+  };
 
-# --- 侧边栏：设置与导入 ---
-with st.sidebar:
-    st.title("⚙️ 设置中心")
-    api_key = st.text_input("Gemini API Key", value="AIzaSyDjWGjbHOvCKJ9IZQ-P6F0MHyiYVtH4w9I", type="password")
-    selected_lang = st.selectbox("学习目标语言", options=list(LANG_CONFIG.keys()))
-    
-    st.divider()
-    st.subheader("数据管理")
-    uploaded_file = st.file_uploader("手动覆盖单词库 (JSON)", type="json")
+  const prevCard = () => {
+    setIsFlipped(false);
+    setCurrentIndex((prev) => (prev - 1 + words.length) % words.length);
+  };
 
-# --- 核心数据加载逻辑 ---
-def load_data():
-    # 1. 如果用户手动上传了文件，优先使用上传的
-    if uploaded_file is not None:
-        try:
-            return json.load(uploaded_file)
-        except:
-            st.error("上传的 JSON 格式有误")
-    
-    # 2. 否则，根据选定的语言自动读取 GitHub 仓库里的文件
-    target_file = LANG_CONFIG[selected_lang]["file"]
-    if os.path.exists(target_file):
-        with open(target_file, "r", encoding="utf-8") as f:
-            return json.load(f)
-    
-    # 3. 如果都没有，返回默认演示数据
-    return [
-        {"word": "Hello", "meaning": "你好 (示例)", "example": "Hello world", "example_cn": "你好，世界"}
-    ]
+  const currentWord = words[currentIndex] || { word: "无数据", meaning: "请导入" };
 
-# 每次切换语言或上传文件时，重新加载数据
-words_data = load_data()
+  return (
+    <div className="min-h-screen bg-slate-100 text-slate-900 font-sans p-4 md:p-8">
+      <header className="max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+        <div className="flex items-center gap-3">
+          <div className="bg-indigo-600 p-2 rounded-xl">
+            <Globe className="text-white w-8 h-8" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight">语言 Master</h1>
+            <p className="text-xs text-slate-400 font-medium">{langMeta.name}学习模式</p>
+          </div>
+        </div>
 
-# 初始化/重置索引逻辑
-if 'prev_lang' not in st.session_state or st.session_state.prev_lang != selected_lang:
-    st.session_state.current_index = 0
-    st.session_state.flipped = False
-    st.session_state.ai_analysis = None
-    st.session_state.prev_lang = selected_lang
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm mr-2">
+            {Object.entries(LANGUAGE_CONFIG).map(([key, config]) => (
+              <button
+                key={key}
+                onClick={() => {
+                  setCurrentLang(key);
+                  setCurrentIndex(0);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentLang === key ? 'bg-indigo-100 text-indigo-700' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                {config.name}
+              </button>
+            ))}
+          </div>
+          
+          <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-200">
+            <button onClick={() => setViewMode('flashcard')} className={`p-2 rounded-lg transition-all ${viewMode === 'flashcard' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400'}`}><RotateCw size={18} /></button>
+            <button onClick={() => setViewMode('quiz')} className={`p-2 rounded-lg transition-all ${viewMode === 'quiz' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400'}`}><CheckCircle2 size={18} /></button>
+            <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400'}`}><LayoutGrid size={18} /></button>
+          </div>
 
-if 'current_index' not in st.session_state:
-    st.session_state.current_index = 0
-if 'flipped' not in st.session_state:
-    st.session_state.flipped = False
-if 'ai_analysis' not in st.session_state:
-    st.session_state.ai_analysis = None
+          <label className="p-2 bg-white border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 shadow-sm">
+            <Upload size={18} className="text-slate-500" />
+            <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
+          </label>
+        </div>
+      </header>
 
-# --- 核心逻辑函数 ---
-def speak(text, lang_code):
-    js_code = f"""
-        var msg = new SpeechSynthesisUtterance('{text}');
-        msg.lang = '{lang_code}';
-        window.speechSynthesis.speak(msg);
-    """
-    st.components.v1.html(f"<script>{js_code}</script>", height=0)
+      <main className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
+          {/* 进度条 */}
+          <div className="mb-6 flex items-center gap-4">
+            <div className="flex-1 h-2 bg-slate-300 rounded-full overflow-hidden">
+              <div className="h-full bg-indigo-500 transition-all duration-500" style={{ width: `${((currentIndex + 1) / words.length) * 100}%` }} />
+            </div>
+            <span className="text-sm font-semibold text-slate-500">{currentIndex + 1} / {words.length}</span>
+          </div>
 
-def get_ai_analysis(word_data, lang_info):
-    if not api_key:
-        st.error("请输入 API Key")
-        return None
-    
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-2.5-flash-preview-09-2025')
-    
-    prompt = f"""
-    作为一个{lang_info['prompt']}，请为单词 "{word_data['word']}" (含义: {word_data['meaning']}) 提供深度学习分析。
-    请以纯 JSON 格式返回，包含字段：root (词源分析), mnemonic (助记口诀), scenario (对话场景), scenario_cn (翻译)。
-    """
-    
-    try:
-        response = model.generate_content(prompt)
-        json_match = re.search(r'\{.*\}', response.text, re.DOTALL)
-        if json_match:
-            return json.loads(json_match.group())
-    except Exception as e:
-        st.error(f"AI 解析失败: {e}")
-    return None
+          {/* 核心展示区 */}
+          {viewMode === 'flashcard' && (
+            <div className="perspective-1000 h-[400px] relative">
+              <div 
+                onClick={() => setIsFlipped(!isFlipped)}
+                className="w-full h-full cursor-pointer relative transform-style-3d"
+              >
+                {/* 正面卡片 */}
+                <div 
+                  className={`absolute inset-0 bg-white rounded-3xl flex flex-col items-center justify-center p-8 border border-slate-200 shadow-xl transition-all duration-700 ease-in-out backface-hidden z-20 ${isFlipped ? 'opacity-0 [transform:rotateY(-180deg)]' : 'opacity-100 [transform:rotateY(0deg)]'}`}
+                  style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
+                >
+                  <span className="text-indigo-500 text-sm font-bold mb-4 tracking-widest uppercase">{langMeta.label}单词</span>
+                  <h2 className="text-5xl font-bold mb-6 text-center leading-tight">{currentWord.word}</h2>
+                  <button onClick={(e) => { e.stopPropagation(); speak(currentWord.word); }} className="p-4 bg-indigo-50 text-indigo-600 rounded-full hover:bg-indigo-100 transition-colors">
+                    <Volume2 size={32} />
+                  </button>
+                  <p className="mt-8 text-slate-400 text-sm">点击翻转查看含义</p>
+                </div>
 
-# --- 主界面 ---
-st.title("🌐 语言 Master")
-st.caption(f"当前模式：{selected_lang}智能辅导")
+                {/* 反面卡片 - 修复镜像问题的核心逻辑 */}
+                <div 
+                  className={`absolute inset-0 bg-indigo-600 rounded-3xl flex flex-col items-center justify-center p-8 text-white shadow-xl transition-all duration-700 ease-in-out backface-hidden ${isFlipped ? 'opacity-100 [transform:rotateY(0deg)] z-30' : 'opacity-0 [transform:rotateY(180deg)] z-10'}`}
+                  style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
+                >
+                  <span className="text-indigo-200 text-sm font-bold mb-4 tracking-widest uppercase text-center w-full block">中文释义</span>
+                  <h2 className="text-4xl font-bold mb-8 text-center">{currentWord.meaning}</h2>
+                  {currentWord.example && (
+                    <div className="bg-white/10 p-6 rounded-2xl max-w-sm text-center">
+                      <p className="text-lg font-medium mb-2 leading-relaxed">{currentWord.example}</p>
+                      <p className="text-sm text-indigo-100 italic">{currentWord.example_cn}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
-lang_info = LANG_CONFIG[selected_lang]
-# 确保索引不越界
-idx = st.session_state.current_index % len(words_data)
-current_word = words_data[idx]
+          {viewMode === 'quiz' && (
+            <div className="bg-white p-8 rounded-3xl shadow-xl border border-slate-200 min-h-[400px]">
+               <div className="flex justify-between items-center mb-8">
+                 <h3 className="text-xl font-bold">请选择正确含义：</h3>
+                 <div className="flex items-center gap-2 text-green-600 font-bold bg-green-50 px-3 py-1 rounded-lg text-sm">
+                   <Trophy size={16} /> 准确率: {score.total > 0 ? Math.round((score.correct / score.total) * 100) : 0}%
+                 </div>
+               </div>
+               <div className="flex flex-col items-center mb-8">
+                  <h2 className="text-4xl font-bold mb-4 text-center">{currentWord.word}</h2>
+                  <button onClick={() => speak(currentWord.word)} className="text-indigo-500 hover:scale-110 transition-transform">
+                    <Volume2 size={24} />
+                  </button>
+               </div>
+               <div className="grid grid-cols-1 gap-3">
+                 {quizOptions.map((opt, idx) => (
+                   <button key={idx} onClick={() => handleQuizAnswer(opt.word)} className="w-full py-4 px-6 text-left border-2 border-slate-100 rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 transition-all font-medium text-lg">
+                     {idx + 1}. {opt.meaning}
+                   </button>
+                 ))}
+               </div>
+            </div>
+          )}
 
-# 进度条
-progress = (idx + 1) / len(words_data)
-st.progress(progress)
-st.write(f"进度：{idx + 1} / {len(words_data)}")
+          {viewMode === 'list' && (
+            <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
+              <div className="p-6 border-bottom border-slate-200 bg-slate-50/50">
+                <h3 className="font-bold flex items-center gap-2 text-slate-700">
+                  <BookOpen size={20}/> {langMeta.name}词库预览
+                </h3>
+              </div>
+              <div className="max-h-[500px] overflow-y-auto">
+                {words.map((w, i) => (
+                  <div key={i} className="flex items-center justify-between p-4 border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                    <div className="flex-1 pr-4">
+                      <div className="font-bold text-lg text-slate-800">{w.word}</div>
+                      <div className="text-slate-500 text-sm">{w.meaning}</div>
+                    </div>
+                    <button onClick={() => speak(w.word)} className="text-slate-400 hover:text-indigo-500 transition-colors"><Volume2 size={20} /></button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-# 单词卡片展示
-with st.container():
-    st.markdown('<div class="word-card">', unsafe_allow_html=True)
-    
-    if not st.session_state.flipped:
-        st.markdown(f'<p style="color:#6366f1; font-weight:bold; letter-spacing:2px;">{lang_info["label"]}</p>', unsafe_allow_html=True)
-        st.markdown(f'<div class="word-text">{current_word["word"]}</div>', unsafe_allow_html=True)
-    else:
-        st.markdown(f'<p style="color:#6366f1; font-weight:bold; letter-spacing:2px;">中文释义</p>', unsafe_allow_html=True)
-        st.markdown(f'<div class="meaning-text">{current_word["meaning"]}</div>', unsafe_allow_html=True)
-        if "example" in current_word:
-            st.markdown(f'<div class="example-box">"{current_word["example"]}"<br><small>{current_word.get("example_cn", "")}</small></div>', unsafe_allow_html=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+          {viewMode !== 'list' && (
+            <div className="flex justify-between mt-8 items-center">
+              <button onClick={prevCard} className="p-4 bg-white rounded-2xl shadow-sm border border-slate-200 text-slate-600 hover:bg-slate-100 transition-all active:scale-95 shadow-md"><ChevronLeft size={28} /></button>
+              <div className="text-slate-400 text-[10px] font-bold uppercase tracking-widest text-center max-w-[150px]">
+                点击卡片翻转，或使用按钮切换单词
+              </div>
+              <button onClick={nextCard} className="p-4 bg-white rounded-2xl shadow-sm border border-slate-200 text-slate-600 hover:bg-slate-100 transition-all active:scale-95 shadow-md"><ChevronRight size={28} /></button>
+            </div>
+          )}
+        </div>
 
-# 交互按钮
-col1, col2, col3 = st.columns([1, 2, 1])
-with col1:
-    if st.button("上一个"):
-        st.session_state.current_index = (idx - 1) % len(words_data)
-        st.session_state.flipped = False
-        st.session_state.ai_analysis = None
-        st.rerun()
+        {/* AI 助学面板 */}
+        <div className="lg:col-span-1">
+          <div className="bg-white rounded-3xl shadow-lg border border-slate-200 p-6 flex flex-col h-full sticky top-8">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <Sparkles className="text-amber-500" />
+                <h3 className="text-lg font-bold">AI 助学解析</h3>
+              </div>
+              <span className="text-[10px] bg-slate-100 px-2 py-1 rounded-md text-slate-500 font-bold uppercase">{currentLang}模式</span>
+            </div>
 
-with col2:
-    if st.button("🔄 翻转卡片"):
-        st.session_state.flipped = not st.session_state.flipped
-        st.rerun()
+            {!aiAnalysis && !isAnalyzing && (
+              <div className="flex flex-col items-center justify-center flex-1 py-12 text-center">
+                <div className="bg-slate-50 p-4 rounded-full mb-4"><BrainCircuit className="text-slate-300 w-12 h-12" /></div>
+                <p className="text-slate-500 text-sm mb-6 leading-relaxed">获取单词的词源分析、趣味记忆法和实战对话场景。</p>
+                <button onClick={fetchAiAnalysis} className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 shadow-md">
+                  <Sparkles size={18} /> ✨ 开启 AI 深度学习
+                </button>
+              </div>
+            )}
 
-with col3:
-    if st.button("下一个"):
-        st.session_state.current_index = (idx + 1) % len(words_data)
-        st.session_state.flipped = False
-        st.session_state.ai_analysis = None
-        st.rerun()
+            {isAnalyzing && (
+              <div className="flex flex-col items-center justify-center flex-1 py-12">
+                <Loader2 className="animate-spin text-indigo-600 w-10 h-10 mb-4" />
+                <p className="text-slate-500 font-medium animate-pulse text-sm">AI 正在努力思考中...</p>
+              </div>
+            )}
 
-# 发音与 AI 解析
-st.divider()
-c1, c2 = st.columns(2)
-with c1:
-    if st.button(f"🔊 播放{selected_lang}发音"):
-        speak(current_word['word'], lang_info['code'])
+            {aiAnalysis && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-y-auto max-h-[60vh] pr-2 custom-scrollbar">
+                <section>
+                  <div className="flex items-center gap-2 text-indigo-600 font-bold text-xs mb-2"><BookOpen size={14} /> 词源/分析</div>
+                  <p className="text-slate-700 text-sm bg-slate-50 p-3 rounded-xl border border-slate-100 leading-relaxed">{aiAnalysis.root}</p>
+                </section>
+                <section>
+                  <div className="flex items-center gap-2 text-amber-600 font-bold text-xs mb-2"><Lightbulb size={14} /> 助记灵感</div>
+                  <div className="bg-amber-50 p-3 rounded-xl border border-amber-100 italic text-slate-800 text-sm">"{aiAnalysis.mnemonic}"</div>
+                </section>
+                <section>
+                  <div className="flex items-center gap-2 text-teal-600 font-bold text-xs mb-2"><MessageSquareQuote size={14} /> 场景对话</div>
+                  <div className="bg-teal-50 p-4 rounded-xl border border-teal-100">
+                    <p className="text-slate-800 font-medium mb-1 text-sm">{aiAnalysis.scenario}</p>
+                    <p className="text-xs text-slate-500 italic">{aiAnalysis.scenario_cn}</p>
+                  </div>
+                </section>
+                <button onClick={fetchAiAnalysis} className="w-full py-2 text-indigo-600 text-[10px] font-bold hover:bg-indigo-50 transition-all rounded-lg border border-indigo-100 uppercase tracking-widest">刷新 AI 解析</button>
+              </div>
+            )}
+            <div className="mt-auto pt-6 border-t border-slate-100">
+              <p className="text-[9px] text-slate-400 text-center uppercase tracking-widest">Powered by Gemini AI</p>
+            </div>
+          </div>
+        </div>
+      </main>
 
-with c2:
-    if st.button("✨ 获取 AI 助学解析"):
-        with st.spinner("Gemini 正在深度分析中..."):
-            st.session_state.ai_analysis = get_ai_analysis(current_word, lang_info)
+      <style dangerouslySetInnerHTML={{ __html: `
+        .perspective-1000 { perspective: 1000px; }
+        .backface-hidden { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+      `}} />
+    </div>
+  );
+};
 
-# 展示 AI 解析结果
-if st.session_state.ai_analysis:
-    res = st.session_state.ai_analysis
-    st.info("💡 **词源/构成分析**")
-    st.write(res.get('root', '暂无分析'))
-    
-    st.success("🧠 **趣味助记**")
-    st.write(f"*{res.get('mnemonic', '暂无助记')}*")
-    
-    st.warning("💬 **场景模拟**")
-    st.write(f"**{res.get('scenario', '')}**")
-    st.caption(res.get('scenario_cn', ''))
-
-# 底部词库列表
-with st.expander("查看当前词库列表"):
-    st.table(words_data)
+export default App;
