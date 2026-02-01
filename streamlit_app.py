@@ -11,6 +11,13 @@ from io import BytesIO
 # --- 页面配置 ---
 st.set_page_config(page_title="语言 Master", page_icon="🦉", layout="centered", initial_sidebar_state="collapsed")
 
+# --- 兼容性处理 (修复 AttributeError) ---
+def rerun():
+    if hasattr(st, "rerun"):
+        st.rerun()
+    else:
+        st.experimental_rerun()
+
 # --- 核心样式美化 ---
 st.markdown("""
     <style>
@@ -44,7 +51,6 @@ st.markdown("""
         margin-bottom: 15px;
     }
     
-    /* 卡片内字体 */
     .unit-tag {
         position: absolute;
         top: 15px;
@@ -274,7 +280,7 @@ if st.session_state.current_index >= len(words): st.session_state.current_index 
 idx = st.session_state.current_index
 current_word = words[idx]
 
-# --- 功能函数 ---
+# --- 功能函数 (修复：返回 bytes 而非 BytesIO) ---
 def generate_audio(text, lang_code):
     if not text or not text.strip():
         return None
@@ -282,12 +288,8 @@ def generate_audio(text, lang_code):
         tts = gTTS(text=text, lang=lang_code)
         fp = BytesIO()
         tts.write_to_fp(fp)
-        fp.seek(0)
-        return fp
-    except Exception as e:
-        # 在界面上显示具体的错误信息，方便排查
-        st.error(f"语音生成失败: {e}")
-        return None
+        return fp.getvalue() # 返回二进制数据
+    except: return None
 
 def get_ai_help():
     if not api_key:
@@ -337,7 +339,7 @@ def next_quiz():
     st.session_state.quiz_answered = False
     st.session_state.quiz_options = [] 
     st.session_state.audio_bytes = None
-    st.rerun()
+    rerun()
 
 # --- 主界面 ---
 st.title("🌐 语言 Master")
@@ -347,63 +349,73 @@ if mode == "📖 卡片学习":
     progress = (idx + 1) / len(words)
     st.progress(progress)
     
-    # 卡片区域
-    unit_tag_html = ""
-    if 'source_unit' in current_word:
-        unit_tag_html = f'<div class="unit-tag">{current_word["source_unit"]}</div>'
-
-    if not st.session_state.flipped:
-        card_html = f"""<div class="word-card-container">
-    {unit_tag_html}
-    <p class="label-text">{LANG_CONFIG[selected_lang]["label"]}</p>
-    <p class="word-display">{current_word["word"]}</p>
-    <p style="color:#cbd5e1; font-size:12px; margin-top:20px;">●</p>
-</div>"""
-    else:
-        example_html = ""
-        example_text = current_word.get("example", "")
-        if example_text and str(example_text).strip():
-            example_html = f"""<div class="example-box">
-    <div class="example-origin">{example_text}</div>
-    <div class="example-trans">{current_word.get("example_cn","")}</div>
-</div>"""
-        
-        card_html = f"""<div class="word-card-container">
-    {unit_tag_html}
-    <p class="label-text">中文释义</p>
-    <p class="meaning-display">{current_word["meaning"]}</p>
-    {example_html}
-</div>"""
-    st.markdown(card_html, unsafe_allow_html=True)
-
-    # --- 导航按钮 ---
-    c1, c2, c3 = st.columns([1, 2, 1])
-    with c1:
+    # 顶部容器：导航栏 (3列)
+    c_left, c_center, c_right = st.columns([1, 2.5, 1]) 
+    
+    with c_left:
         if st.button("❮", help="上一个"):
             st.session_state.current_index = (idx - 1) % len(words)
             st.session_state.flipped = False
             st.session_state.ai_analysis = None
             st.session_state.audio_bytes = None
             st.session_state.ai_audio_bytes = None
-            st.rerun()
-    with c2:
+            rerun()
+
+    with c_center:
         btn_txt = "🔄 翻转卡片" if not st.session_state.flipped else "↩️ 返回正面"
         if st.button(btn_txt, use_container_width=True):
             st.session_state.flipped = not st.session_state.flipped
-            st.rerun()
-    with c3:
+            rerun()
+
+    with c_right:
         if st.button("❯", help="下一个"):
             st.session_state.current_index = (idx + 1) % len(words)
             st.session_state.flipped = False
             st.session_state.ai_analysis = None
             st.session_state.audio_bytes = None
             st.session_state.ai_audio_bytes = None
-            st.rerun()
+            rerun()
 
-    st.write("")
+    # 单词卡片区域 (修复：顶格写 HTML，防止缩进导致的代码显示错误)
+    unit_tag_html = ""
+    if 'source_unit' in current_word:
+        unit_tag_html = f'<div class="unit-tag">{current_word["source_unit"]}</div>'
+
+    if not st.session_state.flipped:
+        # 顶格
+        card_html = f"""
+<div class="word-card-container">
+    {unit_tag_html}
+    <p class="label-text">{LANG_CONFIG[selected_lang]["label"]}</p>
+    <p class="word-display">{current_word["word"]}</p>
+    <p style="color:#cbd5e1; font-size:12px; margin-top:20px;">●</p>
+</div>
+"""
+    else:
+        example_html = ""
+        example_text = current_word.get("example", "")
+        if example_text and str(example_text).strip():
+            # 顶格
+            example_html = f"""
+<div class="example-box">
+    <div class="example-origin">{example_text}</div>
+    <div class="example-trans">{current_word.get("example_cn","")}</div>
+</div>
+"""
+        # 顶格
+        card_html = f"""
+<div class="word-card-container">
+    {unit_tag_html}
+    <p class="label-text">中文释义</p>
+    <p class="meaning-display">{current_word["meaning"]}</p>
+    {example_html}
+</div>
+"""
+    st.markdown(card_html, unsafe_allow_html=True)
+
     st.divider()
 
-    # --- 功能按钮 ---
+    # 功能按钮
     col_a, col_b = st.columns(2)
     with col_a:
         if st.button(f"🔊 发音", use_container_width=True): 
@@ -411,7 +423,7 @@ if mode == "📖 卡片学习":
                 audio_data = generate_audio(current_word['word'], LANG_CONFIG[selected_lang]['code'])
                 if audio_data:
                     st.session_state.audio_bytes = audio_data
-                    st.rerun()
+                    rerun()
         if st.session_state.audio_bytes:
             st.audio(st.session_state.audio_bytes, format="audio/mp3")
     
@@ -426,16 +438,12 @@ if mode == "📖 卡片学习":
         st.info(f"🧠 **助记**: {res.get('mnemonic', '暂无')}")
         st.warning(f"💬 **场景**: {res.get('scenario', '暂无')}\n\n*{res.get('scenario_cn', '')}*")
         
-        # AI 语音播放逻辑修复
         if st.button("🔊 播放对话", key="ai_play"):
-            scenario_text = res.get('scenario', '')
-            if scenario_text:
-                with st.spinner("正在生成 AI 语音..."):
+            with st.spinner("..."):
+                scenario_text = res.get('scenario', '')
+                if scenario_text:
                     st.session_state.ai_audio_bytes = generate_audio(scenario_text, LANG_CONFIG[selected_lang]['code'])
-                    st.rerun()
-            else:
-                st.warning("暂无对话内容可播放")
-        
+                    rerun()
         if st.session_state.ai_audio_bytes:
             st.audio(st.session_state.ai_audio_bytes, format="audio/mp3")
 
@@ -460,7 +468,7 @@ else:
             with (col1 if i % 2 == 0 else col2):
                 if st.button(option["meaning"], key=f"quiz_opt_{i}", use_container_width=True):
                     check_answer(option)
-                    st.rerun()
+                    rerun()
     else:
         if st.session_state.quiz_correct:
             st.success(f"✅ 正确！\n\n**{current_word['word']}** = **{current_word['meaning']}**")
