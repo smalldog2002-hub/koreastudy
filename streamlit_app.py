@@ -208,7 +208,8 @@ st.markdown("""
 LANG_CONFIG = {
     "韩语": {"code": "ko", "prompt": "资深的韩语老师", "label": "韩文", "file_prefix": "words_ko"},
     "泰语": {"code": "th", "prompt": "资深的泰语老师", "label": "泰文", "file_prefix": "words_th"},
-    "日语": {"code": "ja", "prompt": "资深的日语老师", "label": "日语", "file_prefix": "words_ja"}
+    "日语": {"code": "ja", "prompt": "资深的日语老师", "label": "日语", "file_prefix": "words_ja"},
+    "法语": {"code": "fr", "prompt": "资深的法语老师", "label": "法文", "file_prefix": "words_fr"}
 }
 
 # --- 状态初始化 ---
@@ -534,3 +535,4 @@ else:
             st.error(f"❌ 错误。\n\n正确答案：**{current_word['meaning']}**")
         
         st.button("➡️ 下一题", type="primary", on_click=next_quiz, use_container_width=True)
+
