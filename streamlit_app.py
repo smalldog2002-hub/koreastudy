@@ -5,17 +5,16 @@ import os
 import re
 import random
 import time
-import textwrap
 from gtts import gTTS
 from io import BytesIO
 
 # --- 页面配置 ---
-st.set_page_config(page_title="语言 Master", page_icon="🌐", layout="centered", initial_sidebar_state="collapsed")
+# [修改] 图标已更新为猫头鹰 🦉
+st.set_page_config(page_title="语言 Master", page_icon="🦉", layout="centered", initial_sidebar_state="collapsed")
 
-# --- 核心样式美化 (App级质感 + 布局修复) ---
+# --- 核心样式美化 (修复布局与HTML渲染) ---
 st.markdown("""
     <style>
-    /* 全局字体与背景 */
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap');
     
     .stApp {
@@ -23,21 +22,20 @@ st.markdown("""
         font-family: 'Noto Sans SC', sans-serif;
     }
 
-    /* 1. 容器适配：限制最大宽度，让手机端和电脑端保持一致的 App 比例 */
+    /* 容器适配：保持舒适的阅读宽度 */
     div.block-container {
-        padding-top: 1rem;
+        padding-top: 2rem;
         padding-bottom: 5rem;
-        max-width: 600px; 
+        max-width: 600px;
     }
 
-    /* 2. 单词卡片容器 */
+    /* === 单词卡片容器 === */
     .word-card-container {
         background: #ffffff;
         padding: 40px 20px;
         border-radius: 24px;
-        box-shadow: 0 15px 35px rgba(0,0,0,0.08);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.06);
         text-align: center;
-        margin-bottom: 15px; /* 减少卡片与按钮的间距 */
         min-height: 320px;
         display: flex;
         flex-direction: column;
@@ -45,15 +43,16 @@ st.markdown("""
         align-items: center;
         position: relative;
         border: 1px solid #f1f5f9;
+        margin-bottom: 24px;
     }
     
-    /* 3. 卡片内元素样式 */
+    /* 卡片内字体 */
     .unit-tag {
         position: absolute;
         top: 15px;
         right: 15px;
         background-color: #f1f5f9;
-        color: #64748b;
+        color: #94a3b8;
         padding: 4px 10px;
         border-radius: 8px;
         font-size: 11px;
@@ -81,7 +80,7 @@ st.markdown("""
         margin: 5px 0; 
     }
     
-    /* 例句样式 - 修复显示问题 */
+    /* 例句样式 */
     .example-box {
         background-color: #f8fafc;
         padding: 16px;
@@ -106,105 +105,87 @@ st.markdown("""
         font-weight: 400;
     }
 
-    /* 4. 导航按钮布局 (关键修复：Flexbox 两端对齐) */
+    /* === 按钮布局通用优化 === */
     
-    /* 定位包含三个导航按钮的容器 (通常是页面上的第一个 horizontal block) */
-    div[data-testid="stHorizontalBlock"]:nth-of-type(1) {
+    /* 强制垂直居中对齐 */
+    div[data-testid="stHorizontalBlock"] {
         align-items: center;
-        gap: 10px !important; /* 减小列间距 */
     }
     
-    /* 左侧列：按钮左对齐 */
-    div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(1) {
-        display: flex;
-        justify-content: flex-start; 
-    }
-    
-    /* 中间列：按钮居中 */
-    div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(2) {
-        display: flex;
-        justify-content: center;
-    }
-    
-    /* 右侧列：按钮右对齐 */
-    div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(3) {
-        display: flex;
-        justify-content: flex-end; 
-    }
-
-    /* 5. 按钮样式重塑 */
+    /* 基础按钮样式 */
     .stButton > button {
-        border-radius: 12px;
-        font-weight: 700;
         border: none;
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         transition: transform 0.1s;
-        background-color: white;
-        color: #475569;
-        height: auto !important;
-        padding: 10px 20px !important;
+        font-weight: 700;
     }
     .stButton > button:active {
         transform: scale(0.95);
         box-shadow: none;
     }
 
-    /* === 导航按钮专用样式 === */
+    /* 1. 导航栏 (上一个/翻转/下一个) */
     
-    /* 左右箭头：方形、大图标 */
+    /* 左右箭头：圆形 */
     div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(1) button, 
     div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(3) button {
         background-color: white;
         border: 1px solid #e2e8f0;
         color: #64748b;
-        width: 52px !important;
-        height: 52px !important;
-        padding: 0 !important;
-        border-radius: 16px !important;
+        width: 50px !important;
+        height: 50px !important;
+        border-radius: 50% !important;
         font-size: 20px !important;
+        padding: 0 !important;
         display: flex;
         align-items: center;
         justify-content: center;
     }
+    
+    /* 左右对齐逻辑 */
+    div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(1) {
+        display: flex; justify-content: flex-start;
+    }
+    div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(3) {
+        display: flex; justify-content: flex-end;
+    }
 
-    /* 中间翻转按钮：胶囊形、自适应宽度、去除多余装饰 */
+    /* 中间翻转按钮：胶囊形 */
     div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(2) button {
         background: #ffffff;
         color: #4f46e5 !important;
         border: 1px solid #e0e7ff !important;
         box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1) !important;
-        padding: 12px 30px !important; /* 左右增加内边距 */
-        font-size: 15px !important;
         border-radius: 99px !important;
-        width: auto !important; /* 宽度自适应 */
-        min-width: 120px;
+        height: 50px !important;
+        font-size: 15px !important;
+        width: auto !important;
+        padding: 0 30px !important;
+        min-width: 140px;
     }
-    
-    /* 翻转按钮文字图标 */
-    div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(2) button:before {
-        content: "🔄 "; 
-        font-size: 14px;
-        margin-right: 4px;
+    div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(2) {
+        display: flex; justify-content: center;
     }
 
-    /* === 底部功能按钮样式 (发音 & AI) === */
-    /* 强制等高、灰色背景 */
+    /* 2. 底部功能按钮 (发音/AI) */
     div[data-testid="stHorizontalBlock"]:nth-of-type(3) button {
-        background-color: #f8fafc;
+        background-color: #f1f5f9;
         color: #334155;
         border: 1px solid #e2e8f0;
         border-radius: 16px;
         height: 54px !important;
         font-size: 15px !important;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
+        width: 100% !important;
     }
 
-    /* 练习模式分数 */
+    /* 移动端字体适配 */
+    @media only screen and (max-width: 600px) {
+        .word-display { font-size: 2.5rem !important; }
+        .meaning-display { font-size: 1.8rem !important; }
+    }
+    
     .quiz-score {
-        font-size: 24px;
+        font-size: 20px;
         font-weight: 800;
         color: #10b981;
         margin-bottom: 20px;
@@ -224,7 +205,7 @@ if 'current_index' not in st.session_state: st.session_state.current_index = 0
 if 'flipped' not in st.session_state: st.session_state.flipped = False
 if 'ai_analysis' not in st.session_state: st.session_state.ai_analysis = None
 if 'audio_bytes' not in st.session_state: st.session_state.audio_bytes = None
-# 练习模式状态
+if 'ai_audio_bytes' not in st.session_state: st.session_state.ai_audio_bytes = None
 if 'quiz_score' not in st.session_state: st.session_state.quiz_score = 0
 if 'quiz_answered' not in st.session_state: st.session_state.quiz_answered = False
 if 'quiz_correct' not in st.session_state: st.session_state.quiz_correct = False
@@ -241,6 +222,7 @@ with st.sidebar:
         st.session_state.flipped = False
         st.session_state.ai_analysis = None
         st.session_state.audio_bytes = None
+        st.session_state.ai_audio_bytes = None
         st.session_state.quiz_score = 0
         st.session_state.quiz_answered = False
         st.session_state.quiz_options = []
@@ -265,10 +247,7 @@ def load_raw_data():
             with open(target_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
     if data is None:
-        return [
-            {"word": f"Demo {i}", "meaning": f"示例单词 {i}", "example": "Test Sentence", "example_cn": "测试例句"} 
-            for i in range(1, 45)
-        ]
+        return [{"word": f"Demo {i}", "meaning": f"示例 {i}", "example": "Test", "example_cn": "测试"} for i in range(1, 45)]
     return data
 
 def process_data_selection(raw_data):
@@ -294,11 +273,7 @@ def process_data_selection(raw_data):
         st.sidebar.subheader("📚 单元选择")
         all_units = list(processed_data.keys())
         default_selections = [all_units[0]] if all_units else []
-        selected_units = st.sidebar.multiselect(
-            f"选择范围 (共 {len(all_units)} 单元):", 
-            options=all_units, 
-            default=default_selections
-        )
+        selected_units = st.sidebar.multiselect(f"选择范围 (共 {len(all_units)} 单元):", options=all_units, default=default_selections)
         if not selected_units:
             st.warning("⚠️ 请至少勾选一个单元！")
             return []
@@ -312,11 +287,8 @@ def process_data_selection(raw_data):
 raw_data_content = load_raw_data()
 words = process_data_selection(raw_data_content)
 
-if not words:
-    st.stop()
-
-if st.session_state.current_index >= len(words):
-    st.session_state.current_index = 0
+if not words: st.stop()
+if st.session_state.current_index >= len(words): st.session_state.current_index = 0
     
 idx = st.session_state.current_index
 current_word = words[idx]
@@ -329,15 +301,14 @@ def generate_audio(text, lang_code):
         tts.write_to_fp(fp)
         fp.seek(0)
         return fp
-    except Exception as e:
-        st.error(f"发音生成失败: {e}")
-        return None
+    except: return None
 
 def get_ai_help():
     if not api_key:
         st.warning("请在侧边栏输入 API Key")
         return
     try:
+        st.session_state.ai_audio_bytes = None
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-2.5-flash-preview-09-2025')
         prompt = f"""
@@ -351,7 +322,7 @@ def get_ai_help():
     except Exception as e:
         st.error(f"AI 响应错误: {e}")
 
-# --- 练习模式辅助函数 ---
+# --- 练习模式辅助 ---
 def init_quiz_options():
     st.session_state.quiz_options = []
     options = [current_word]
@@ -371,8 +342,7 @@ def init_quiz_options():
 def check_answer(selected_option):
     is_correct = selected_option['word'] == current_word['word']
     st.session_state.quiz_correct = is_correct
-    if is_correct:
-        st.session_state.quiz_score += 10
+    if is_correct: st.session_state.quiz_score += 10
     st.session_state.audio_bytes = None
     st.session_state.quiz_answered = True
 
@@ -383,7 +353,7 @@ def next_quiz():
     st.session_state.audio_bytes = None
     st.rerun()
 
-# --- 主界面逻辑 ---
+# --- 主界面 ---
 st.title("🌐 语言 Master")
 st.caption(f"当前模式：{selected_lang} - {mode}")
 
@@ -391,73 +361,71 @@ if mode == "📖 卡片学习":
     progress = (idx + 1) / len(words)
     st.progress(progress)
     
-    # 卡片显示逻辑
+    # 单词卡片区域
     unit_tag_html = ""
     if 'source_unit' in current_word:
         unit_tag_html = f'<div class="unit-tag">{current_word["source_unit"]}</div>'
 
-    # 修复 HTML 渲染 bug：使用 textwrap.dedent 去除缩进
     if not st.session_state.flipped:
-        card_html = textwrap.dedent(f"""
-            <div class="word-card-container">
-                {unit_tag_html}
-                <p class="label-text">{LANG_CONFIG[selected_lang]["label"]}</p>
-                <p class="word-display">{current_word["word"]}</p>
-                <p style="color:#cbd5e1; font-size:12px; margin-top:20px; font-weight:700;">● ● ●</p>
-            </div>
-        """)
+        card_html = f"""
+        <div class="word-card-container">
+            {unit_tag_html}
+            <p class="label-text">{LANG_CONFIG[selected_lang]["label"]}</p>
+            <p class="word-display">{current_word["word"]}</p>
+            <p style="color:#cbd5e1; font-size:12px; margin-top:20px;">●</p>
+        </div>
+        """
     else:
         example_html = ""
         example_text = current_word.get("example", "")
         if example_text and str(example_text).strip():
-            example_html = textwrap.dedent(f"""
+            example_html = f"""
             <div class="example-box">
                 <div class="example-origin">{example_text}</div>
                 <div class="example-trans">{current_word.get("example_cn","")}</div>
             </div>
-            """)
-        
-        card_html = textwrap.dedent(f"""
-            <div class="word-card-container">
-                {unit_tag_html}
-                <p class="label-text">中文释义</p>
-                <p class="meaning-display">{current_word["meaning"]}</p>
-                {example_html}
-            </div>
-        """)
-    
+            """
+        card_html = f"""
+        <div class="word-card-container">
+            {unit_tag_html}
+            <p class="label-text">中文释义</p>
+            <p class="meaning-display">{current_word["meaning"]}</p>
+            {example_html}
+        </div>
+        """
     st.markdown(card_html, unsafe_allow_html=True)
 
-    # --- 导航按钮 (完美对齐) ---
-    # 使用 columns 布局，CSS 会处理具体的对齐方式
-    c1, c2, c3 = st.columns([1, 2, 1]) 
+    # --- 导航按钮 (位于卡片下方) ---
+    c1, c2, c3 = st.columns([1, 2, 1])
     with c1:
-        if st.button("⬅️", help="上一个"):
+        if st.button("❮", help="上一个"):
             st.session_state.current_index = (idx - 1) % len(words)
             st.session_state.flipped = False
             st.session_state.ai_analysis = None
             st.session_state.audio_bytes = None
+            st.session_state.ai_audio_bytes = None
             st.rerun()
     with c2:
-        # 去掉眼睛，使用胶囊样式
-        btn_txt = "翻转卡片" if not st.session_state.flipped else "返回正面"
+        btn_txt = "🔄 翻转卡片" if not st.session_state.flipped else "↩️ 返回正面"
         if st.button(btn_txt, use_container_width=True):
             st.session_state.flipped = not st.session_state.flipped
             st.rerun()
     with c3:
-        if st.button("➡️", help="下一个"):
+        if st.button("❯", help="下一个"):
             st.session_state.current_index = (idx + 1) % len(words)
             st.session_state.flipped = False
             st.session_state.ai_analysis = None
             st.session_state.audio_bytes = None
+            st.session_state.ai_audio_bytes = None
             st.rerun()
 
+    st.write("")
     st.divider()
 
-    # --- 功能按钮 (发音 & AI) ---
+    # --- 功能按钮 ---
     col_a, col_b = st.columns(2)
     with col_a:
-        if st.button(f"🔊 发音"): 
+        if st.button(f"🔊 发音", use_container_width=True): 
             with st.spinner("."):
                 audio_data = generate_audio(current_word['word'], LANG_CONFIG[selected_lang]['code'])
                 if audio_data:
@@ -465,8 +433,9 @@ if mode == "📖 卡片学习":
                     st.rerun()
         if st.session_state.audio_bytes:
             st.audio(st.session_state.audio_bytes, format="audio/mp3")
+    
     with col_b:
-        if st.button("✨ AI 助学"):
+        if st.button("✨ AI 助学", use_container_width=True):
             with st.spinner("..."):
                 get_ai_help()
 
@@ -475,6 +444,15 @@ if mode == "📖 卡片学习":
         st.success(f"💡 **词源**: {res.get('root', '暂无')}")
         st.info(f"🧠 **助记**: {res.get('mnemonic', '暂无')}")
         st.warning(f"💬 **场景**: {res.get('scenario', '暂无')}\n\n*{res.get('scenario_cn', '')}*")
+        
+        if st.button("🔊 播放对话", key="ai_play"):
+            with st.spinner("..."):
+                scenario_text = res.get('scenario', '')
+                if scenario_text:
+                    st.session_state.ai_audio_bytes = generate_audio(scenario_text, LANG_CONFIG[selected_lang]['code'])
+                    st.rerun()
+        if st.session_state.ai_audio_bytes:
+            st.audio(st.session_state.ai_audio_bytes, format="audio/mp3")
 
 else:
     # === 练习模式 ===
@@ -486,9 +464,8 @@ else:
     if not st.session_state.quiz_answered and not is_options_valid:
         init_quiz_options()
     
-    st.markdown(f'<div style="text-align:center;"><span class="quiz-score">🏆 {st.session_state.quiz_score}</span></div>', unsafe_allow_html=True)
-    
-    st.markdown(f'<div class="quiz-question">"{current_word["word"]}" 是什么意思？</div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="text-align:center; font-size:20px; font-weight:800; color:#10b981; margin-bottom:10px;">🏆 {st.session_state.quiz_score}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="text-align:center; font-size:24px; font-weight:800; color:#334155; margin:10px 0 30px 0;">"{current_word["word"]}" 是什么意思？</div>', unsafe_allow_html=True)
     
     options = st.session_state.quiz_options
     
