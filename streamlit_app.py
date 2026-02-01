@@ -18,12 +18,12 @@ def rerun():
     else:
         st.experimental_rerun()
 
-# --- 核心样式美化 (流光溢彩 + 毛玻璃 + 极致紧凑 + 移动端适配) ---
+# --- 核心样式美化 ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap');
     
-    /* 1. 动态流光背景 (回归) */
+    /* 动态流光背景 */
     @keyframes gradient {
         0% { background-position: 0% 50%; }
         50% { background-position: 100% 50%; }
@@ -37,21 +37,20 @@ st.markdown("""
         font-family: 'Noto Sans SC', sans-serif;
     }
 
-    /* 2. 容器适配：移除顶部标题留白，极致紧凑 */
     div.block-container {
-        padding-top: 1rem; 
-        padding-bottom: 3rem;
+        padding-top: 1rem;
+        padding-bottom: 5rem;
         max-width: 600px;
     }
     
-    /* 隐藏 Streamlit 默认的 Header 和锚点 */
+    /* 隐藏 Header */
     header[data-testid="stHeader"] { background: transparent; }
     .st-emotion-cache-16txtl3 { padding-top: 0rem; } 
 
-    /* 3. 单词卡片容器：毛玻璃特效 (Glassmorphism) 回归 */
+    /* 卡片容器：毛玻璃 */
     .word-card-container {
-        background: rgba(255, 255, 255, 0.75); /* 半透明白 */
-        backdrop-filter: blur(16px); /* 磨砂效果 */
+        background: rgba(255, 255, 255, 0.75);
+        backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
         padding: 30px 15px;
         border-radius: 28px;
@@ -68,7 +67,6 @@ st.markdown("""
         transition: transform 0.2s ease;
     }
     
-    /* 卡片内字体 */
     .unit-tag {
         position: absolute;
         top: 15px;
@@ -107,7 +105,6 @@ st.markdown("""
         margin: 5px 0; 
     }
     
-    /* 例句盒子：透亮风格 */
     .example-box {
         background: rgba(255,255,255,0.5);
         padding: 16px;
@@ -123,7 +120,7 @@ st.markdown("""
     .example-origin { color: #475569; font-size: 15px; font-weight: 700; line-height: 1.4; }
     .example-trans { color: #94a3b8; font-size: 13px; font-weight: 400; }
 
-    /* === 按钮通用样式：透光感 === */
+    /* 按钮样式 */
     .stButton > button {
         border: 1px solid rgba(255, 255, 255, 0.6) !important;
         background: rgba(255, 255, 255, 0.65) !important;
@@ -143,13 +140,9 @@ st.markdown("""
         transform: scale(0.95);
     }
 
-    /* 4. 导航按钮布局 (三列垂直居中) */
-    div[data-testid="stHorizontalBlock"] {
-        align-items: center;
-        gap: 8px !important;
-    }
+    div[data-testid="stHorizontalBlock"] { align-items: center; gap: 8px !important; }
 
-    /* 左右箭头：纯图标，无背景 */
+    /* 左右箭头 */
     .nav-btn-container button {
         background: transparent !important;
         border: none !important;
@@ -169,7 +162,7 @@ st.markdown("""
         transform: scale(1.2);
     }
 
-    /* 中间翻转按钮：渐变胶囊 */
+    /* 中间翻转 */
     .flip-btn-container button {
         background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%) !important;
         color: white !important;
@@ -193,37 +186,20 @@ st.markdown("""
         background: rgba(255, 255, 255, 0.5) !important;
     }
     
-    .quiz-score {
-        font-size: 20px;
-        font-weight: 800;
-        color: #10b981;
-        margin-bottom: 20px;
-    }
+    .quiz-score { font-size: 20px; font-weight: 800; color: #10b981; margin-bottom: 20px; }
 
-    /* === 📱 移动端深度适配 === */
     @media only screen and (max-width: 600px) {
         div.block-container { padding-top: 0.5rem; }
-        
-        div[data-testid="stHorizontalBlock"] {
-            flex-wrap: nowrap !important;
-            gap: 4px !important;
-        }
+        div[data-testid="stHorizontalBlock"] { flex-wrap: nowrap !important; gap: 4px !important; }
         div[data-testid="stHorizontalBlock"]:nth-of-type(1) [data-testid="column"]:nth-of-type(1),
         div[data-testid="stHorizontalBlock"]:nth-of-type(1) [data-testid="column"]:nth-of-type(3) {
-            flex: 0 0 50px !important;
-            min-width: 50px !important;
+            flex: 0 0 50px !important; min-width: 50px !important;
         }
         div[data-testid="stHorizontalBlock"]:nth-of-type(1) [data-testid="column"]:nth-of-type(2) {
             flex: 1 1 auto !important;
         }
-
-        .word-display { font-size: 2.8rem !important; }
-        .meaning-display { font-size: 1.8rem !important; }
-        .word-card-container { 
-            min-height: 280px; 
-            padding: 30px 10px;
-            margin-bottom: 10px;
-        }
+        .word-display { font-size: 2.8rem !important; } .meaning-display { font-size: 1.8rem !important; }
+        .word-card-container { min-height: 280px; padding: 30px 10px; margin-bottom: 10px; }
     }
     </style>
     """, unsafe_allow_html=True)
@@ -245,16 +221,34 @@ if 'quiz_score' not in st.session_state: st.session_state.quiz_score = 0
 if 'quiz_answered' not in st.session_state: st.session_state.quiz_answered = False
 if 'quiz_correct' not in st.session_state: st.session_state.quiz_correct = False
 if 'quiz_options' not in st.session_state: st.session_state.quiz_options = []
-# 重新加入：当前选中的书名状态
 if 'current_book' not in st.session_state: st.session_state.current_book = None
 
 # --- 侧边栏 ---
 with st.sidebar:
     st.title("⚙️ 设置")
-    api_key = st.text_input("Gemini API Key", value="", type="password", help="在此输入 Key")
+    
+    # === [核心功能] 自动读取 Secrets Key ===
+    # 逻辑：优先尝试从 st.secrets 读取。如果读不到，则让用户手动输入。
+    try:
+        secrets_key = st.secrets.get("GEMINI_API_KEY", "")
+    except FileNotFoundError:
+        secrets_key = ""
+
+    if secrets_key:
+        st.success("✅ API Key 已安全加载")
+        # 允许用户手动覆盖（可选）
+        use_custom_key = st.toggle("使用其他 Key")
+        if use_custom_key:
+            api_key = st.text_input("手动输入新 Key", value="", type="password")
+        else:
+            api_key = secrets_key
+    else:
+        st.info("💡 提示：配置 Secrets 可免重复输入")
+        api_key = st.text_input("Gemini API Key", value="", type="password", help="在此输入 Key")
+
+    st.divider()
     selected_lang = st.selectbox("当前语言", options=list(LANG_CONFIG.keys()))
     
-    # [功能回归] 自动扫描并选择书籍
     prefix = LANG_CONFIG[selected_lang]["file_prefix"]
     try:
         all_files = os.listdir('.')
@@ -292,13 +286,11 @@ def load_raw_data():
         try: return json.load(uploaded_file)
         except: st.error("JSON 格式错误")
     
-    # 优先加载侧边栏选中的书籍文件
     if selected_book and selected_book != "默认演示词库":
         if os.path.exists(selected_book):
             with open(selected_book, "r", encoding="utf-8") as f:
                 return json.load(f)
     
-    # 兜底数据
     return [{"word": f"Demo {i}", "meaning": f"示例 {i}", "example": "Test", "example_cn": "测试"} for i in range(1, 45)]
 
 def process_data_selection(raw_data):
@@ -343,7 +335,7 @@ if st.session_state.current_index >= len(words): st.session_state.current_index 
 idx = st.session_state.current_index
 current_word = words[idx]
 
-# --- 功能函数 (音频修复：明确 MIME 类型) ---
+# --- 功能函数 ---
 def generate_audio(text, lang_code):
     if not text or not str(text).strip(): return None
     try:
@@ -406,13 +398,10 @@ def next_quiz():
     rerun()
 
 # --- 主界面 ---
-# [修复] 移除了顶部的标题和地球图标
-
 if mode == "📖 卡片学习":
     progress = (idx + 1) / len(words)
     st.progress(progress)
     
-    # 顶部容器：导航栏 (3列)
     c_left, c_card, c_right = st.columns([1, 8, 1], gap="small") 
     
     with c_left:
@@ -442,9 +431,10 @@ if mode == "📖 卡片学习":
             example_html = ""
             example_text = current_word.get("example", "")
             if example_text and str(example_text).strip():
-                # [修复] 移除所有缩进，防止 Markdown 误判为代码块
-                example_html = f"""<div class="example-box"><div class="example-origin">{example_text}</div><div class="example-trans">{current_word.get("example_cn","")}</div></div>"""
-            
+                example_html = f"""<div class="example-box">
+    <div class="example-origin">{example_text}</div>
+    <div class="example-trans">{current_word.get("example_cn","")}</div>
+</div>"""
             card_html = f"""<div class="word-card-container">
     {unit_tag_html}
     <p class="label-text">中文释义</p>
@@ -471,7 +461,6 @@ if mode == "📖 卡片学习":
             rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # 紧凑分割线
     st.markdown('<div style="height: 1px; background-color: rgba(0,0,0,0.05); margin: 15px 0 15px 0;"></div>', unsafe_allow_html=True)
 
     col_a, col_b = st.columns(2)
@@ -484,7 +473,6 @@ if mode == "📖 卡片学习":
                     st.session_state.audio_bytes = audio_data
                     rerun()
         st.markdown('</div>', unsafe_allow_html=True)
-        # [修复] 明确 format="audio/mpeg" 以支持 iOS Safari
         if st.session_state.audio_bytes:
             st.audio(st.session_state.audio_bytes, format="audio/mpeg", start_time=0)
     
@@ -514,7 +502,6 @@ if mode == "📖 卡片学习":
             st.audio(st.session_state.ai_audio_bytes, format="audio/mpeg")
 
 else:
-    # === 练习模式 ===
     is_options_valid = False
     if st.session_state.quiz_options:
         if any(opt['word'] == current_word['word'] for opt in st.session_state.quiz_options):
