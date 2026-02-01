@@ -9,152 +9,166 @@ from gtts import gTTS
 from io import BytesIO
 
 # --- 页面配置 ---
-st.set_page_config(page_title="语言 Master - AI 学习终端", page_icon="🌐", layout="centered")
+st.set_page_config(page_title="语言 Master", page_icon="🌐", layout="centered", initial_sidebar_state="collapsed")
 
-# --- 样式美化 (适配 iPhone 15 Pro Max & 华为 Pura) ---
+# --- 核心样式美化 (App级质感) ---
 st.markdown("""
     <style>
-    /* 1. 移动端容器适配：减少顶部留白，增加可视区域 */
-    div.block-container {
-        padding-top: 1rem;
-        padding-bottom: 5rem;
-        padding-left: 0.5rem;
-        padding-right: 0.5rem;
+    /* 全局字体与背景优化 */
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap');
+    
+    .stApp {
+        background-color: #f8fafc;
+        font-family: 'Noto Sans SC', sans-serif;
     }
 
-    /* 2. 单词卡片容器 */
+    /* 1. 移动端容器适配：去除多余留白 */
+    div.block-container {
+        padding-top: 1.5rem;
+        padding-bottom: 3rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        max-width: 700px; /* 限制最大宽度，类似 App 视图 */
+    }
+
+    /* 2. 单词卡片容器：悬浮感与柔和阴影 */
     .word-card-container {
-        background-color: #ffffff !important;
-        padding: 30px 15px;
-        border-radius: 24px;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+        background: #ffffff;
+        padding: 40px 20px;
+        border-radius: 28px;
+        box-shadow: 0 20px 40px -12px rgba(0,0,0,0.08), 0 2px 10px -5px rgba(0,0,0,0.03);
         text-align: center;
-        border: 1px solid #f1f5f9;
-        margin-bottom: 15px;
+        border: 1px solid rgba(255,255,255,0.8);
+        margin-bottom: 24px;
         min-height: 320px;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
         position: relative;
-        transition: all 0.3s ease;
+        transition: transform 0.2s ease;
     }
-
-    /* 3. 字体与元素基础样式 */
+    
+    /* 3. 字体美化 */
     .unit-tag {
         position: absolute;
-        top: 12px;
-        right: 12px;
-        background-color: #f8fafc;
-        color: #94a3b8;
-        padding: 4px 10px;
-        border-radius: 12px;
+        top: 16px;
+        right: 16px;
+        background-color: #f1f5f9;
+        color: #64748b;
+        padding: 6px 12px;
+        border-radius: 99px;
         font-size: 11px;
         font-weight: 700;
-        border: 1px solid #e2e8f0;
+        letter-spacing: 0.5px;
     }
     .label-text { 
-        color: #6366f1 !important; 
+        color: #94a3b8 !important; 
         font-weight: 800; 
-        font-size: 13px; 
+        font-size: 12px; 
         letter-spacing: 2px; 
         text-transform: uppercase; 
-        margin-bottom: 15px;
-        opacity: 0.9;
+        margin-bottom: 16px;
     }
     .word-display { 
-        font-size: 56px !important; 
+        font-size: 3.5rem !important; 
         font-weight: 900 !important; 
         color: #1e293b !important; 
-        margin: 5px 0 15px 0; 
+        margin: 8px 0 16px 0; 
         line-height: 1.1; 
         word-break: keep-all; 
     }
     .meaning-display { 
-        font-size: 28px !important; 
+        font-size: 2rem !important; 
         font-weight: 700 !important; 
         color: #4f46e5 !important; 
         margin: 0; 
-        line-height: 1.4;
+        line-height: 1.3;
     }
     .example-box {
         background-color: #f8fafc !important;
-        padding: 16px;
+        padding: 18px;
         border-radius: 16px;
-        margin-top: 20px;
+        margin-top: 24px;
         border-left: 4px solid #6366f1;
         text-align: left;
         width: 100%;
-        color: #334155 !important;
+        color: #475569 !important;
         font-size: 15px;
-        line-height: 1.5;
+        line-height: 1.6;
     }
     
-    /* 4. 按钮基础样式 */
-    .stButton>button {
+    /* 4. 按钮样式重塑：更圆润、更有质感 */
+    .stButton > button {
         width: 100%;
-        border-radius: 14px;
-        height: 3.5em;
+        border-radius: 16px;
+        height: 3.2rem;
         font-weight: 700;
-        border: none;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        transition: transform 0.1s;
+        border: 1px solid rgba(0,0,0,0.02);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        transition: all 0.15s ease;
+        background-color: white;
     }
-    .stButton>button:active {
+    .stButton > button:active {
         transform: scale(0.96);
+        box-shadow: none;
+    }
+    /* 主按钮样式 */
+    .stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        color: white;
+        border: none;
+        box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
     }
 
-    /* 5. 练习模式样式 */
+    /* 5. 练习模式分数 */
     .quiz-score {
         font-size: 18px;
         font-weight: 800;
-        color: #10b981;
+        color: #059669;
         background: #ecfdf5;
-        padding: 8px 16px;
-        border-radius: 20px;
+        padding: 8px 20px;
+        border-radius: 99px;
         display: inline-block;
-        margin-bottom: 15px;
-    }
-    .quiz-question {
-        font-size: 24px;
-        font-weight: 800;
-        text-align: center;
-        margin: 10px 0 25px 0;
-        color: #1e293b;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
 
-    /* === 📱 移动端深度适配 (核心修改) === */
+    /* === 📱 移动端深度适配 (iPhone/Pura 优化) === */
     @media only screen and (max-width: 600px) {
-        /* 强制所有列在移动端不换行 (Row Layout) */
+        /* 强制按钮行紧凑排列 */
         div[data-testid="stHorizontalBlock"] {
             flex-direction: row !important;
             flex-wrap: nowrap !important;
-            gap: 0.5rem !important; /* 减小按钮间距 */
+            gap: 0.4rem !important; /* 极小的间距 */
+            align-items: center !important;
         }
         
-        /* 允许列宽度自动收缩 */
+        /* 列宽自动分配，不允许挤压 */
         div[data-testid="column"] {
-            width: auto !important;
-            flex: 1 1 auto !important;
+            flex: 1 1 0 !important;
             min-width: 0 !important;
+            padding: 0 !important; /* 去除列内边距 */
         }
 
-        /* 移动端按钮特殊处理：缩小文字，允许换行，减小内边距 */
-        .stButton>button {
-            height: auto !important;
-            min-height: 3.2em;
-            padding: 4px 2px !important;
-            font-size: 13px !important;
-            line-height: 1.2 !important;
-            white-space: normal !important; /* 允许文字在按钮内换行 */
+        /* 按钮文字与大小微调 */
+        .stButton > button {
+            height: 3.5rem !important; /* 增加触摸高度 */
+            padding: 0 4px !important;
+            font-size: 14px !important;
+            white-space: nowrap !important; /* 防止文字换行 */
+            overflow: hidden;
         }
         
-        /* 进一步缩小卡片字体以防溢出 */
-        .word-display { font-size: 42px !important; }
-        .meaning-display { font-size: 24px !important; }
+        /* 卡片文字适配 */
+        .word-card-container {
+            min-height: 280px;
+            padding: 30px 15px;
+        }
+        .word-display { font-size: 2.8rem !important; }
+        .meaning-display { font-size: 1.6rem !important; }
         
-        /* 隐藏不必要的 label 装饰以节省空间 */
-        .label-text { margin-bottom: 8px; font-size: 11px; }
+        /* 隐藏不重要的标签，节省空间 */
+        .label-text { margin-bottom: 8px; font-size: 10px; }
     }
     </style>
     """, unsafe_allow_html=True)
@@ -204,38 +218,28 @@ with st.sidebar:
 
 # --- 数据加载逻辑 (自动分单元) ---
 def load_raw_data():
-    """加载原始数据，可能是列表(旧版)或字典(新版-含单元)"""
     data = None
-    
-    # 1. 优先读取上传文件
     if uploaded_file:
         try:
             data = json.load(uploaded_file)
         except:
             st.error("JSON 格式错误")
-    
-    # 2. 读取 GitHub 文件
     if data is None:
         target_file = LANG_CONFIG[selected_lang]["file"]
         if os.path.exists(target_file):
             with open(target_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-    
-    # 3. 默认兜底数据
     if data is None:
         return [
             {"word": f"Demo {i}", "meaning": f"示例单词 {i}", "example": "Test", "example_cn": "测试"} 
             for i in range(1, 45)
         ]
-    
     return data
 
 def process_data_selection(raw_data):
-    """处理数据并生成最终的学习列表"""
     final_list = []
     processed_data = {}
 
-    # 情况 A: 数据是列表 -> 自动按 20 个切分
     if isinstance(raw_data, list):
         chunk_size = 20
         if len(raw_data) > 0:
@@ -245,50 +249,37 @@ def process_data_selection(raw_data):
                 processed_data[unit_name] = chunk
         else:
             return []
-
-    # 情况 B: 数据已经是字典 -> 直接使用
     elif isinstance(raw_data, dict):
         processed_data = raw_data
-    
     else:
         st.error("数据结构无法识别")
         return []
 
-    # 侧边栏选择逻辑
     if processed_data:
         st.sidebar.subheader("📚 单元选择")
         all_units = list(processed_data.keys())
-        
         default_selections = [all_units[0]] if all_units else []
-        
         selected_units = st.sidebar.multiselect(
             f"选择范围 (共 {len(all_units)} 单元):", 
             options=all_units, 
-            default=default_selections,
-            help="练习模式的题目和干扰项都将严格限制在你勾选的这些单元内"
+            default=default_selections
         )
-        
         if not selected_units:
             st.warning("⚠️ 请至少勾选一个单元！")
             return []
-            
         for unit in selected_units:
             for word_item in processed_data[unit]:
                 new_item = word_item.copy()
                 new_item['source_unit'] = unit
                 final_list.append(new_item)
-    
     return final_list
 
-# 执行加载和处理
 raw_data_content = load_raw_data()
 words = process_data_selection(raw_data_content)
 
-# 如果没有单词，停止渲染
 if not words:
     st.stop()
 
-# 确保索引有效
 if st.session_state.current_index >= len(words):
     st.session_state.current_index = 0
     
@@ -328,10 +319,8 @@ def get_ai_help():
 # --- 练习模式辅助函数 ---
 def init_quiz_options():
     st.session_state.quiz_options = []
-    
     options = [current_word]
     other_words = [w for w in words if w['word'] != current_word['word']]
-    
     count_needed = 3
     if len(other_words) < count_needed:
         if len(other_words) == 0:
@@ -340,7 +329,6 @@ def init_quiz_options():
              distractors = (other_words * (count_needed // len(other_words) + 1))[:count_needed]
     else:
         distractors = random.sample(other_words, count_needed)
-    
     options.extend(distractors)
     random.shuffle(options)
     st.session_state.quiz_options = options
@@ -350,8 +338,6 @@ def check_answer(selected_option):
     st.session_state.quiz_correct = is_correct
     if is_correct:
         st.session_state.quiz_score += 10
-    
-    # 提交答案时清空音频，确保下一题发音正确
     st.session_state.audio_bytes = None
     st.session_state.quiz_answered = True
 
@@ -359,8 +345,6 @@ def next_quiz():
     st.session_state.current_index = (st.session_state.current_index + 1) % len(words)
     st.session_state.quiz_answered = False
     st.session_state.quiz_options = [] 
-    
-    # 切换下一题清空音频
     st.session_state.audio_bytes = None
     st.rerun()
 
@@ -371,8 +355,17 @@ st.caption(f"当前模式：{selected_lang} - {mode}")
 if mode == "📖 卡片学习":
     progress = (idx + 1) / len(words)
     st.progress(progress)
-    st.write(f"进度: {idx + 1} / {len(words)}")
+    
+    # 顶部状态栏
+    col_status_1, col_status_2 = st.columns([3, 1])
+    with col_status_1:
+        st.write(f"**进度**: {idx + 1} / {len(words)}")
+    with col_status_2:
+        if 'source_unit' in current_word:
+            # 简化显示，不用 div
+            st.caption(f"📍{current_word['source_unit'].split(' ')[0]}")
 
+    # 卡片区域
     unit_tag_html = ""
     if 'source_unit' in current_word:
         unit_tag_html = f'<div class="unit-tag">{current_word["source_unit"]}</div>'
@@ -382,9 +375,9 @@ if mode == "📖 卡片学习":
         card_html = f"""
         <div class="word-card-container">
             {unit_tag_html}
-            <p class="label-text">{LANG_CONFIG[selected_lang]["label"]}单词</p>
+            <p class="label-text">{LANG_CONFIG[selected_lang]["label"]}</p>
             <p class="word-display">{current_word["word"]}</p>
-            <p style="color:#94a3b8; font-size:12px; margin-top:30px;">👇 点击下方按钮查看解释</p>
+            <p style="color:#cbd5e1; font-size:12px; margin-top:20px; font-weight:700;">● ● ●</p>
         </div>
         """
     else:
@@ -407,36 +400,34 @@ if mode == "📖 卡片学习":
         """
     st.markdown(card_html, unsafe_allow_html=True)
 
-    # --- 导航按钮 (移动端强制在一行) ---
-    c1, c2, c3 = st.columns([1, 2, 1])
+    # --- 核心导航按钮 (移动端强制紧凑单行) ---
+    c1, c2, c3 = st.columns([1, 1.5, 1])
     with c1:
-        if st.button("⬅️", help="上一个"): # 缩短文本以适应手机
+        if st.button("⬅️", help="上一个"):
             st.session_state.current_index = (idx - 1) % len(words)
             st.session_state.flipped = False
             st.session_state.ai_analysis = None
             st.session_state.audio_bytes = None
             st.rerun()
     with c2:
-        btn_txt = "👁️" if st.session_state.flipped else "🔄 翻转"
-        if st.button(btn_txt, type="primary", use_container_width=True):
+        btn_txt = "👁️ 查看" if st.session_state.flipped else "🔄 翻转"
+        if st.button(btn_txt, type="primary"):
             st.session_state.flipped = not st.session_state.flipped
             st.rerun()
     with c3:
-        if st.button("➡️", help="下一个"): # 缩短文本以适应手机
+        if st.button("➡️", help="下一个"):
             st.session_state.current_index = (idx + 1) % len(words)
             st.session_state.flipped = False
             st.session_state.ai_analysis = None
             st.session_state.audio_bytes = None
             st.rerun()
 
-    st.divider()
-
-    # --- 动作按钮 (移动端强制在一行) ---
+    # --- 功能按钮 (移动端强制紧凑单行) ---
+    st.write("") # 增加一点垂直间距
     col_a, col_b = st.columns(2)
     with col_a:
-        # 缩短按钮文字以适应单行
         if st.button(f"🔊 发音"): 
-            with st.spinner("生成语音..."):
+            with st.spinner("."):
                 audio_data = generate_audio(current_word['word'], LANG_CONFIG[selected_lang]['code'])
                 if audio_data:
                     st.session_state.audio_bytes = audio_data
@@ -445,7 +436,7 @@ if mode == "📖 卡片学习":
             st.audio(st.session_state.audio_bytes, format="audio/mp3")
     with col_b:
         if st.button("✨ AI 助学"):
-            with st.spinner("Gemini 正在思考..."):
+            with st.spinner("..."):
                 get_ai_help()
 
     if st.session_state.ai_analysis:
@@ -464,12 +455,9 @@ else:
     if not st.session_state.quiz_answered and not is_options_valid:
         init_quiz_options()
     
-    st.markdown(f'<div class="quiz-score" style="text-align:center;">🏆 当前积分: {st.session_state.quiz_score}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="text-align:center;"><span class="quiz-score">🏆 {st.session_state.quiz_score}</span></div>', unsafe_allow_html=True)
     
-    if 'source_unit' in current_word:
-        st.caption(f"当前题目来自：{current_word['source_unit']}")
-
-    st.markdown(f'<div class="quiz-question">请选择 "{current_word["word"]}" 的正确含义：</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="quiz-question">"{current_word["word"]}" 是什么意思？</div>', unsafe_allow_html=True)
     
     options = st.session_state.quiz_options
     
@@ -482,13 +470,13 @@ else:
                     st.rerun()
     else:
         if st.session_state.quiz_correct:
-            st.success(f"✅ 回答正确！\n\n**{current_word['word']}** = **{current_word['meaning']}**")
+            st.success(f"✅ 正确！\n\n**{current_word['word']}** = **{current_word['meaning']}**")
             if not st.session_state.audio_bytes:
                  audio_data = generate_audio(current_word['word'], LANG_CONFIG[selected_lang]['code'])
                  if audio_data: st.session_state.audio_bytes = audio_data
             if st.session_state.audio_bytes:
                 st.audio(st.session_state.audio_bytes, format="audio/mp3", start_time=0)
         else:
-            st.error(f"❌ 回答错误。\n\n正确答案是：**{current_word['meaning']}**")
+            st.error(f"❌ 错误。\n\n正确答案：**{current_word['meaning']}**")
         
-        st.button("➡️ 继续下一题", type="primary", on_click=next_quiz, use_container_width=True)
+        st.button("➡️ 下一题", type="primary", on_click=next_quiz, use_container_width=True)
