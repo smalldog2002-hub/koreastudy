@@ -18,175 +18,160 @@ def rerun():
     else:
         st.experimental_rerun()
 
-# --- 核心样式美化 ---
+# --- 核心样式美化 (流光溢彩 + 布局下移) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap');
     
+    /* 1. 动态流光背景回归 */
+    @keyframes gradient {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    
     .stApp {
-        background-color: #f8fafc;
+        background: linear-gradient(-45deg, #e0e7ff, #f3e8ff, #dbeafe, #f0f9ff);
+        background-size: 400% 400%;
+        animation: gradient 15s ease infinite;
         font-family: 'Noto Sans SC', sans-serif;
     }
 
+    /* 2. 容器适配：增加顶部留白，让卡片下移 */
     div.block-container {
-        padding-top: 0.5rem;
-        padding-bottom: 2rem;
+        padding-top: 3rem; /* 增加这里的值让卡片往下移 */
+        padding-bottom: 5rem;
         max-width: 600px;
     }
 
-    /* === 单词卡片容器 === */
+    /* === 单词卡片容器 (毛玻璃效果) === */
     .word-card-container {
-        background: #ffffff;
-        padding: 30px 15px;
+        background: rgba(255, 255, 255, 0.85); /* 半透明 */
+        backdrop-filter: blur(12px); /* 磨砂感 */
+        -webkit-backdrop-filter: blur(12px);
+        padding: 40px 20px;
         border-radius: 24px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.6);
         text-align: center;
-        min-height: 300px; /* 固定高度，防止跳动 */
+        min-height: 320px;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
         position: relative;
-        border: 1px solid #f1f5f9;
-        margin-bottom: 5px; /* 紧贴下方按钮 */
+        margin-bottom: 15px;
     }
     
     /* 卡片内字体 */
     .unit-tag {
         position: absolute;
-        top: 12px;
-        right: 12px;
-        background-color: #f1f5f9;
+        top: 15px;
+        right: 15px;
+        background: rgba(241, 245, 249, 0.8);
         color: #94a3b8;
-        padding: 3px 8px;
-        border-radius: 6px;
-        font-size: 10px;
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-size: 11px;
         font-weight: 700;
     }
     .label-text { 
-        color: #94a3b8; 
+        color: #818cf8; /* 配合流光背景的紫色 */
         font-weight: 800; 
-        font-size: 11px; 
+        font-size: 12px; 
         letter-spacing: 2px; 
         text-transform: uppercase; 
-        margin-bottom: 8px;
+        margin-bottom: 12px;
     }
     .word-display { 
-        font-size: 3.2rem !important; 
+        font-size: 3.5rem !important; 
         font-weight: 900 !important; 
-        color: #1e293b; 
-        margin: 5px 0; 
+        color: #334155; 
+        margin: 10px 0; 
         line-height: 1.1; 
+        text-shadow: 1px 1px 0px rgba(255,255,255,0.8);
     }
     .meaning-display { 
-        font-size: 1.8rem !important; 
+        font-size: 2rem !important; 
         font-weight: 700 !important; 
-        color: #4f46e5; 
+        color: #6366f1; 
         margin: 5px 0; 
     }
     
     /* 例句样式 */
     .example-box {
-        background-color: #f8fafc;
-        padding: 12px;
+        background: rgba(248, 250, 252, 0.6);
+        padding: 16px;
         border-radius: 12px;
-        margin-top: 15px;
-        border-left: 3px solid #6366f1;
+        margin-top: 20px;
+        border-left: 4px solid #818cf8;
         text-align: left;
         width: 100%;
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 6px;
     }
-    .example-origin {
-        color: #334155;
-        font-size: 14px;
-        font-weight: 700;
-        line-height: 1.4;
-    }
-    .example-trans {
-        color: #64748b;
-        font-size: 12px;
-        font-weight: 400;
-    }
+    .example-origin { color: #334155; font-size: 15px; font-weight: 700; line-height: 1.4; }
+    .example-trans { color: #64748b; font-size: 13px; font-weight: 400; }
 
-    /* === 导航按钮布局 (贴合卡片) === */
+    /* === 导航按钮布局优化 === */
     
     div[data-testid="stHorizontalBlock"] {
         align-items: center;
-        gap: 0px !important; /* 消除间距 */
+        gap: 10px !important;
     }
     
     .stButton > button {
-        border: none;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        border: 1px solid rgba(255,255,255,0.5) !important;
+        background: rgba(255,255,255,0.7) !important;
+        backdrop-filter: blur(4px);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
         transition: transform 0.1s;
         font-weight: 700;
+        color: #64748b !important;
     }
     .stButton > button:active {
         transform: scale(0.95);
         box-shadow: none;
     }
 
-    /* 左箭头：靠右对齐，紧贴卡片 */
-    div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(1) {
-        display: flex; 
-        justify-content: flex-end; /* 向右挤 */
-        padding-right: 5px !important;
-    }
+    /* 左箭头 (列1) */
     div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(1) button {
-        background: transparent;
-        border: 1px solid #f1f5f9;
-        color: #94a3b8;
-        border-radius: 50% !important;
-        height: 48px !important;
-        width: 48px !important;
-        font-size: 20px !important;
-        padding: 0 !important;
-    }
-
-    /* 中间翻转按钮 */
-    div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(2) button {
-        background: #ffffff;
-        color: #4f46e5 !important;
-        border: 1px solid #e0e7ff !important;
-        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1) !important;
-        border-radius: 99px !important;
-        height: 44px !important;
-        font-size: 14px !important;
-        width: auto !important;
-        padding: 0 20px !important;
-        min-width: 100px;
-        margin-top: 10px;
-    }
-
-    /* 右箭头：靠左对齐，紧贴卡片 */
-    div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(3) {
-        display: flex; 
-        justify-content: flex-start; /* 向左挤 */
-        padding-left: 5px !important;
-    }
-    div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(3) button {
-        background: transparent;
-        border: 1px solid #f1f5f9;
-        color: #94a3b8;
-        border-radius: 50% !important;
-        height: 48px !important;
-        width: 48px !important;
-        font-size: 20px !important;
-        padding: 0 !important;
-    }
-
-    /* 底部功能按钮 */
-    div[data-testid="stHorizontalBlock"]:nth-of-type(3) button {
-        background-color: #f1f5f9;
-        color: #334155;
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        height: 48px !important;
-        font-size: 14px !important;
+        border-radius: 16px !important;
+        height: 50px !important;
         width: 100% !important;
-        margin-top: 0px !important;
+        font-size: 20px !important;
+        color: #94a3b8 !important;
+    }
+
+    /* 中间翻转按钮 (列2) - 渐变色 */
+    div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(2) button {
+        background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%) !important;
+        color: white !important;
+        border: none !important;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2) !important;
+        border-radius: 99px !important;
+        height: 50px !important;
+        font-size: 15px !important;
+        width: 100% !important;
+    }
+
+    /* 右箭头 (列3) */
+    div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(3) button {
+        border-radius: 16px !important;
+        height: 50px !important;
+        width: 100% !important;
+        font-size: 20px !important;
+        color: #94a3b8 !important;
+    }
+
+    /* === 底部功能按钮 (发音 & AI) === */
+    div[data-testid="stHorizontalBlock"]:nth-of-type(3) button {
+        background: rgba(241, 245, 249, 0.8) !important;
+        color: #334155 !important;
+        border-radius: 16px;
+        height: 54px !important;
+        font-size: 15px !important;
     }
     
     .quiz-score {
@@ -198,87 +183,111 @@ st.markdown("""
 
     /* === 📱 移动端深度适配 === */
     @media only screen and (max-width: 600px) {
+        div.block-container {
+            padding-top: 2rem; /* 手机端顶部留白稍多一点，视觉更平衡 */
+        }
+
         div[data-testid="stHorizontalBlock"]:nth-of-type(1) {
             flex-wrap: nowrap !important;
-            gap: 0px !important;
+            gap: 5px !important;
         }
         
         div[data-testid="stHorizontalBlock"]:nth-of-type(1) [data-testid="column"]:nth-of-type(1),
         div[data-testid="stHorizontalBlock"]:nth-of-type(1) [data-testid="column"]:nth-of-type(3) {
-            flex: 0 0 50px !important; /* 箭头列宽 */
-            min-width: 50px !important;
+            flex: 0 0 40px !important;
+            min-width: 40px !important;
         }
         div[data-testid="stHorizontalBlock"]:nth-of-type(1) [data-testid="column"]:nth-of-type(2) {
             flex: 1 1 auto !important;
+            min-width: 0 !important;
         }
-
-        .word-display { font-size: 2.8rem !important; }
-        .meaning-display { font-size: 1.8rem !important; }
-        .word-card-container { 
-            min-height: 260px; 
-            padding: 20px 5px;
-            margin-bottom: 5px;
-        }
+        
+        .word-display { font-size: 2.2rem !important; }
+        .meaning-display { font-size: 1.5rem !important; }
+        .word-card-container { min-height: 260px; padding: 20px 5px; }
     }
     </style>
     """, unsafe_allow_html=True)
 
 # --- 语言配置 ---
 LANG_CONFIG = {
-    "韩语": {"code": "ko", "prompt": "资深的韩语老师", "label": "韩文", "file": "words_ko.json"},
-    "泰语": {"code": "th", "prompt": "资深的泰语老师", "label": "泰文", "file": "words_th.json"},
-    "日语": {"code": "ja", "prompt": "资深的日语老师", "label": "日语", "file": "words_ja.json"}
+    "韩语": {"code": "ko", "prompt": "资深的韩语老师", "label": "韩文", "file_prefix": "words_ko"},
+    "泰语": {"code": "th", "prompt": "资深的泰语老师", "label": "泰文", "file_prefix": "words_th"},
+    "日语": {"code": "ja", "prompt": "资深的日语老师", "label": "日语", "file_prefix": "words_ja"}
 }
 
 # --- 状态初始化 ---
 if 'current_index' not in st.session_state: st.session_state.current_index = 0
 if 'flipped' not in st.session_state: st.session_state.flipped = False
 if 'ai_analysis' not in st.session_state: st.session_state.ai_analysis = None
-if 'audio_data' not in st.session_state: st.session_state.audio_data = None # 统一存放音频(bytes或URL)
-if 'ai_audio_data' not in st.session_state: st.session_state.ai_audio_data = None
+if 'audio_bytes' not in st.session_state: st.session_state.audio_bytes = None
+if 'ai_audio_bytes' not in st.session_state: st.session_state.ai_audio_bytes = None
 if 'quiz_score' not in st.session_state: st.session_state.quiz_score = 0
 if 'quiz_answered' not in st.session_state: st.session_state.quiz_answered = False
 if 'quiz_correct' not in st.session_state: st.session_state.quiz_correct = False
 if 'quiz_options' not in st.session_state: st.session_state.quiz_options = []
+# 新增：记录当前书名
+if 'current_book' not in st.session_state: st.session_state.current_book = None
 
 # --- 侧边栏 ---
 with st.sidebar:
     st.title("⚙️ 设置")
     api_key = st.text_input("Gemini API Key", value="", type="password", help="在此输入 Key")
+    
+    # 1. 选择语言
     selected_lang = st.selectbox("当前语言", options=list(LANG_CONFIG.keys()))
     
-    if 'prev_lang' not in st.session_state or st.session_state.prev_lang != selected_lang:
+    # 2. 自动扫描并选择书籍 (多教材功能回归)
+    prefix = LANG_CONFIG[selected_lang]["file_prefix"]
+    # 扫描当前目录下符合 words_ko_*.json 格式的文件
+    # 注意：Streamlit Cloud 上传文件后，通常在当前工作目录
+    try:
+        all_files = os.listdir('.')
+        available_books = [f for f in all_files if f.startswith(prefix) and f.endswith('.json')]
+    except:
+        available_books = []
+    
+    # 默认选项
+    book_options = ["默认演示词库"]
+    if available_books:
+        book_options = sorted(available_books)
+        
+    selected_book = st.selectbox("📚 选择教材/书籍", options=book_options)
+    
+    # 状态重置逻辑
+    if ('prev_lang' not in st.session_state or st.session_state.prev_lang != selected_lang or 
+        st.session_state.current_book != selected_book):
         st.session_state.current_index = 0
         st.session_state.flipped = False
         st.session_state.ai_analysis = None
-        st.session_state.audio_data = None
-        st.session_state.ai_audio_data = None
+        st.session_state.audio_bytes = None
+        st.session_state.ai_audio_bytes = None
         st.session_state.quiz_score = 0
         st.session_state.quiz_answered = False
         st.session_state.quiz_options = []
         st.session_state.prev_lang = selected_lang
+        st.session_state.current_book = selected_book
 
     st.divider()
     mode = st.radio("选择模式", ["📖 卡片学习", "⚔️ 强化练习"])
     st.divider()
-    uploaded_file = st.file_uploader("上传单词库 (JSON)", type="json")
+    uploaded_file = st.file_uploader("手动上传单词库 (JSON)", type="json")
 
 # --- 数据加载逻辑 ---
 def load_raw_data():
-    data = None
+    # 1. 手动上传优先级最高
     if uploaded_file:
-        try:
-            data = json.load(uploaded_file)
-        except:
-            st.error("JSON 格式错误")
-    if data is None:
-        target_file = LANG_CONFIG[selected_lang]["file"]
-        if os.path.exists(target_file):
-            with open(target_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
-    if data is None:
-        return [{"word": f"Demo {i}", "meaning": f"示例 {i}", "example": "Test", "example_cn": "测试"} for i in range(1, 45)]
-    return data
+        try: return json.load(uploaded_file)
+        except: st.error("JSON 格式错误")
+    
+    # 2. 加载侧边栏选中的书籍文件
+    if selected_book and selected_book != "默认演示词库":
+        if os.path.exists(selected_book):
+            with open(selected_book, "r", encoding="utf-8") as f:
+                return json.load(f)
+    
+    # 3. 兜底数据
+    return [{"word": f"Demo {i}", "meaning": f"示例 {i}", "example": "Test", "example_cn": "测试"} for i in range(1, 45)]
 
 def process_data_selection(raw_data):
     final_list = []
@@ -323,24 +332,16 @@ if st.session_state.current_index >= len(words): st.session_state.current_index 
 idx = st.session_state.current_index
 current_word = words[idx]
 
-# --- 功能函数 (修复版：支持 URL 回退) ---
+# --- 功能函数 ---
 def generate_audio_data(text, lang_code):
-    """
-    生成音频数据。
-    1. 尝试 gTTS (服务器生成)
-    2. 如果失败，返回 Google TTS 的 URL (客户端直接播放，解决 iOS/IP 限制问题)
-    """
     if not text or not str(text).strip(): return None
-    
-    # 尝试 1: gTTS
     try:
         tts = gTTS(text=str(text), lang=lang_code)
         fp = BytesIO()
         tts.write_to_fp(fp)
-        return fp.getvalue() # 返回二进制
-    except Exception:
-        # 尝试 2: 返回 URL (Streamlit st.audio 支持直接播放 URL)
-        # 注意：client=tw-ob 是 Google 的公开接口
+        return fp.getvalue()
+    except:
+        # Fallback URL for iOS
         return f"https://translate.google.com/translate_tts?ie=UTF-8&q={text}&tl={lang_code}&client=tw-ob"
 
 def get_ai_help():
@@ -348,7 +349,7 @@ def get_ai_help():
         st.warning("请在侧边栏输入 API Key")
         return
     try:
-        st.session_state.ai_audio_data = None
+        st.session_state.ai_audio_bytes = None
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-2.5-flash-preview-09-2025')
         prompt = f"""
@@ -383,14 +384,14 @@ def check_answer(selected_option):
     is_correct = selected_option['word'] == current_word['word']
     st.session_state.quiz_correct = is_correct
     if is_correct: st.session_state.quiz_score += 10
-    st.session_state.audio_data = None
+    st.session_state.audio_bytes = None
     st.session_state.quiz_answered = True
 
 def next_quiz():
     st.session_state.current_index = (st.session_state.current_index + 1) % len(words)
     st.session_state.quiz_answered = False
     st.session_state.quiz_options = [] 
-    st.session_state.audio_data = None
+    st.session_state.audio_bytes = None
     rerun()
 
 # --- 主界面 ---
@@ -404,14 +405,13 @@ if mode == "📖 卡片学习":
     c_left, c_card, c_right = st.columns([1, 8, 1], gap="small") 
     
     with c_left:
-        # 左侧列靠右对齐，紧贴卡片
         st.markdown('<div class="nav-btn-container">', unsafe_allow_html=True)
         if st.button("❮", help="上一个"):
             st.session_state.current_index = (idx - 1) % len(words)
             st.session_state.flipped = False
             st.session_state.ai_analysis = None
-            st.session_state.audio_data = None
-            st.session_state.ai_audio_data = None
+            st.session_state.audio_bytes = None
+            st.session_state.ai_audio_bytes = None
             rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -451,14 +451,13 @@ if mode == "📖 卡片学习":
         st.markdown('</div>', unsafe_allow_html=True)
 
     with c_right:
-        # 右侧列靠左对齐，紧贴卡片
         st.markdown('<div class="nav-btn-container">', unsafe_allow_html=True)
         if st.button("❯", help="下一个"):
             st.session_state.current_index = (idx + 1) % len(words)
             st.session_state.flipped = False
             st.session_state.ai_analysis = None
-            st.session_state.audio_data = None
-            st.session_state.ai_audio_data = None
+            st.session_state.audio_bytes = None
+            st.session_state.ai_audio_bytes = None
             rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -470,17 +469,13 @@ if mode == "📖 卡片学习":
         st.markdown('<div class="func-btn-container">', unsafe_allow_html=True)
         if st.button(f"🔊 发音", use_container_width=True): 
             with st.spinner("."):
-                # 获取音频（bytes 或 URL）
                 data = generate_audio_data(current_word['word'], LANG_CONFIG[selected_lang]['code'])
                 if data:
-                    st.session_state.audio_data = data
+                    st.session_state.audio_bytes = data
                     rerun()
         st.markdown('</div>', unsafe_allow_html=True)
-        
-        if st.session_state.audio_data:
-            # 兼容 bytes 和 URL
-            # format="audio/mpeg" 对 iOS 最友好
-            st.audio(st.session_state.audio_data, format="audio/mpeg")
+        if st.session_state.audio_bytes:
+            st.audio(st.session_state.audio_bytes, format="audio/mpeg")
     
     with col_b:
         st.markdown('<div class="func-btn-container">', unsafe_allow_html=True)
@@ -500,12 +495,12 @@ if mode == "📖 卡片学习":
             with st.spinner("..."):
                 scenario_text = res.get('scenario', '')
                 if scenario_text:
-                    st.session_state.ai_audio_data = generate_audio_data(scenario_text, LANG_CONFIG[selected_lang]['code'])
+                    st.session_state.ai_audio_bytes = generate_audio_data(scenario_text, LANG_CONFIG[selected_lang]['code'])
                     rerun()
         st.markdown('</div>', unsafe_allow_html=True)
         
-        if st.session_state.ai_audio_data:
-            st.audio(st.session_state.ai_audio_data, format="audio/mpeg")
+        if st.session_state.ai_audio_bytes:
+            st.audio(st.session_state.ai_audio_bytes, format="audio/mpeg")
 
 else:
     # === 练习模式 ===
@@ -532,11 +527,11 @@ else:
     else:
         if st.session_state.quiz_correct:
             st.success(f"✅ 正确！\n\n**{current_word['word']}** = **{current_word['meaning']}**")
-            if not st.session_state.audio_data:
+            if not st.session_state.audio_bytes:
                  data = generate_audio_data(current_word['word'], LANG_CONFIG[selected_lang]['code'])
-                 if data: st.session_state.audio_data = data
-            if st.session_state.audio_data:
-                st.audio(st.session_state.audio_data, format="audio/mpeg", start_time=0)
+                 if data: st.session_state.audio_bytes = data
+            if st.session_state.audio_bytes:
+                st.audio(st.session_state.audio_bytes, format="audio/mpeg", start_time=0)
         else:
             st.error(f"❌ 错误。\n\n正确答案：**{current_word['meaning']}**")
         
