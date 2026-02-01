@@ -34,141 +34,167 @@ st.markdown("""
         max-width: 600px;
     }
 
-    /* === 单词卡片容器 === */
+    /* === 核心布局：箭头 + 卡片 === */
+    
+    /* 强制列垂直居中 (Align items center) */
+    div[data-testid="stHorizontalBlock"] {
+        align-items: center !important;
+    }
+
+    /* 左右箭头按钮样式：透明、大图标、悬浮感 */
+    .nav-btn-container button {
+        background: transparent !important;
+        border: none !important;
+        color: #94a3b8 !important;
+        font-size: 28px !important;
+        padding: 0 !important;
+        height: 100% !important;
+        min-height: 60px !important;
+        width: 100% !important;
+        box-shadow: none !important;
+        transition: transform 0.2s, color 0.2s !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .nav-btn-container button:hover {
+        color: #6366f1 !important;
+        transform: scale(1.2);
+        background: transparent !important;
+    }
+    .nav-btn-container button:active {
+        transform: scale(0.9);
+        background: transparent !important;
+    }
+    .nav-btn-container button:focus {
+        box-shadow: none !important;
+        outline: none !important;
+    }
+
+    /* 单词卡片容器 */
     .word-card-container {
         background: #ffffff;
-        padding: 40px 20px;
+        padding: 30px 10px;
         border-radius: 24px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.06);
         text-align: center;
-        min-height: 320px;
+        min-height: 300px;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
         position: relative;
         border: 1px solid #f1f5f9;
-        margin-bottom: 15px;
+        margin: 0; /* 去除边距，由 columns gap 控制 */
     }
     
+    /* 翻转按钮 (单独一行) */
+    .flip-btn-container button {
+        background: #ffffff !important;
+        color: #4f46e5 !important;
+        border: 1px solid #e0e7ff !important;
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1) !important;
+        border-radius: 99px !important;
+        padding: 8px 30px !important;
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        width: auto !important;
+        min-width: 120px;
+        margin: 15px auto 0 auto !important; /* 上边距 */
+        display: block !important;
+    }
+    .flip-btn-container button:active {
+        background: #f5f3ff !important;
+        transform: scale(0.98);
+    }
+
+    /* 卡片内字体 */
     .unit-tag {
         position: absolute;
-        top: 15px;
-        right: 15px;
+        top: 10px;
+        right: 10px;
         background-color: #f1f5f9;
-        color: #94a3b8;
-        padding: 4px 10px;
-        border-radius: 8px;
-        font-size: 11px;
+        color: #cbd5e1;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 10px;
         font-weight: 700;
     }
     .label-text { 
         color: #94a3b8; 
         font-weight: 800; 
-        font-size: 12px; 
+        font-size: 11px; 
         letter-spacing: 2px; 
         text-transform: uppercase; 
-        margin-bottom: 12px;
+        margin-bottom: 10px;
     }
     .word-display { 
-        font-size: 3.5rem !important; 
+        font-size: 3rem !important; 
         font-weight: 900 !important; 
         color: #1e293b; 
-        margin: 10px 0; 
+        margin: 5px 0; 
         line-height: 1.1; 
     }
     .meaning-display { 
-        font-size: 2rem !important; 
+        font-size: 1.8rem !important; 
         font-weight: 700 !important; 
         color: #4f46e5; 
         margin: 5px 0; 
     }
     
-    /* 例句样式 */
+    /* 例句 */
     .example-box {
         background-color: #f8fafc;
-        padding: 16px;
+        padding: 12px;
         border-radius: 12px;
-        margin-top: 20px;
-        border-left: 4px solid #6366f1;
+        margin-top: 15px;
+        border-left: 3px solid #6366f1;
         text-align: left;
-        width: 100%;
+        width: 90%;
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 4px;
     }
-    .example-origin {
-        color: #334155;
-        font-size: 15px;
-        font-weight: 700;
-        line-height: 1.4;
-    }
-    .example-trans {
-        color: #64748b;
-        font-size: 13px;
-        font-weight: 400;
-    }
+    .example-origin { font-size: 14px; font-weight: 700; color: #334155; }
+    .example-trans { font-size: 12px; color: #64748b; }
 
-    /* === 导航按钮布局优化 === */
-    
-    div[data-testid="stHorizontalBlock"]:nth-of-type(1) {
-        align-items: center;
-        gap: 10px !important;
-    }
-    
-    .stButton > button {
-        border: none;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        transition: transform 0.1s;
-        font-weight: 700;
-    }
-    .stButton > button:active {
-        transform: scale(0.95);
-        box-shadow: none;
-    }
-
-    /* 左箭头 (列1) */
-    div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(1) button {
-        background-color: white;
-        border: 1px solid #e2e8f0;
-        color: #64748b;
+    /* 底部功能按钮 */
+    .func-btn-container button {
+        background-color: #f1f5f9 !important;
+        color: #334155 !important;
+        border: 1px solid #e2e8f0 !important;
         border-radius: 16px !important;
-        height: 50px !important;
-        width: 100% !important;
-        font-size: 20px !important;
+        height: 48px !important;
+        font-weight: 700 !important;
+        box-shadow: none !important;
+    }
+    .func-btn-container button:hover {
+        background-color: #e2e8f0 !important;
     }
 
-    /* 中间翻转按钮 (列2) */
-    div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(2) button {
-        background: #ffffff;
-        color: #4f46e5 !important;
-        border: 1px solid #e0e7ff !important;
-        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1) !important;
-        border-radius: 99px !important;
-        height: 50px !important;
-        font-size: 15px !important;
-        width: 100% !important;
-    }
-
-    /* 右箭头 (列3) */
-    div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(3) button {
-        background-color: white;
-        border: 1px solid #e2e8f0;
-        color: #64748b;
-        border-radius: 16px !important;
-        height: 50px !important;
-        width: 100% !important;
-        font-size: 20px !important;
-    }
-
-    /* === 底部功能按钮 (发音 & AI) === */
-    div[data-testid="stHorizontalBlock"]:nth-of-type(3) button {
-        background-color: #f1f5f9;
-        color: #334155;
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        height: 54px !important;
-        font-size: 15px !important;
+    /* === 📱 移动端强制优化 === */
+    @media only screen and (max-width: 600px) {
+        /* 强制主区域三列不换行 */
+        div[data-testid="stHorizontalBlock"] {
+            flex-wrap: nowrap !important;
+            gap: 5px !important;
+        }
+        /* 箭头列宽度固定，中间卡片自适应 */
+        div[data-testid="column"]:nth-of-type(1), 
+        div[data-testid="column"]:nth-of-type(3) {
+            flex: 0 0 40px !important;
+            min-width: 40px !important;
+        }
+        div[data-testid="column"]:nth-of-type(2) {
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
+        }
+        
+        .word-display { font-size: 2.2rem !important; }
+        .meaning-display { font-size: 1.5rem !important; }
+        .word-card-container { min-height: 260px; padding: 20px 5px; }
+        
+        .nav-btn-container button { font-size: 24px !important; }
     }
     
     .quiz-score {
@@ -280,7 +306,7 @@ if st.session_state.current_index >= len(words): st.session_state.current_index 
 idx = st.session_state.current_index
 current_word = words[idx]
 
-# --- 功能函数 (修复：返回 bytes 而非 BytesIO) ---
+# --- 功能函数 ---
 def generate_audio(text, lang_code):
     if not text or not text.strip():
         return None
@@ -288,8 +314,10 @@ def generate_audio(text, lang_code):
         tts = gTTS(text=text, lang=lang_code)
         fp = BytesIO()
         tts.write_to_fp(fp)
-        return fp.getvalue() # 返回二进制数据
-    except: return None
+        return fp.getvalue()
+    except Exception as e:
+        st.error(f"语音生成失败: {e}")
+        return None
 
 def get_ai_help():
     if not api_key:
@@ -349,10 +377,11 @@ if mode == "📖 卡片学习":
     progress = (idx + 1) / len(words)
     st.progress(progress)
     
-    # 顶部容器：导航栏 (3列)
-    c_left, c_center, c_right = st.columns([1, 2.5, 1]) 
+    # 顶部容器：[左箭头] [  单词卡  ] [右箭头]
+    c_left, c_card, c_right = st.columns([1, 8, 1], gap="small") 
     
     with c_left:
+        st.markdown('<div class="nav-btn-container">', unsafe_allow_html=True)
         if st.button("❮", help="上一个"):
             st.session_state.current_index = (idx - 1) % len(words)
             st.session_state.flipped = False
@@ -360,14 +389,47 @@ if mode == "📖 卡片学习":
             st.session_state.audio_bytes = None
             st.session_state.ai_audio_bytes = None
             rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    with c_center:
+    with c_card:
+        unit_tag_html = ""
+        if 'source_unit' in current_word:
+            unit_tag_html = f'<div class="unit-tag">{current_word["source_unit"]}</div>'
+
+        if not st.session_state.flipped:
+            card_html = f"""<div class="word-card-container">
+    {unit_tag_html}
+    <p class="label-text">{LANG_CONFIG[selected_lang]["label"]}</p>
+    <p class="word-display">{current_word["word"]}</p>
+    <p style="color:#cbd5e1; font-size:12px; margin-top:20px;">●</p>
+</div>"""
+        else:
+            example_html = ""
+            example_text = current_word.get("example", "")
+            if example_text and str(example_text).strip():
+                example_html = f"""<div class="example-box">
+    <div class="example-origin">{example_text}</div>
+    <div class="example-trans">{current_word.get("example_cn","")}</div>
+</div>"""
+            
+            card_html = f"""<div class="word-card-container">
+    {unit_tag_html}
+    <p class="label-text">中文释义</p>
+    <p class="meaning-display">{current_word["meaning"]}</p>
+    {example_html}
+</div>"""
+        st.markdown(card_html, unsafe_allow_html=True)
+        
+        # 翻转按钮放在卡片下方中间 (在 c_card 列内)
+        st.markdown('<div class="flip-btn-container">', unsafe_allow_html=True)
         btn_txt = "🔄 翻转卡片" if not st.session_state.flipped else "↩️ 返回正面"
         if st.button(btn_txt, use_container_width=True):
             st.session_state.flipped = not st.session_state.flipped
             rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with c_right:
+        st.markdown('<div class="nav-btn-container">', unsafe_allow_html=True)
         if st.button("❯", help="下一个"):
             st.session_state.current_index = (idx + 1) % len(words)
             st.session_state.flipped = False
@@ -375,62 +437,31 @@ if mode == "📖 卡片学习":
             st.session_state.audio_bytes = None
             st.session_state.ai_audio_bytes = None
             rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # 单词卡片区域 (修复：顶格写 HTML，防止缩进导致的代码显示错误)
-    unit_tag_html = ""
-    if 'source_unit' in current_word:
-        unit_tag_html = f'<div class="unit-tag">{current_word["source_unit"]}</div>'
-
-    if not st.session_state.flipped:
-        # 顶格
-        card_html = f"""
-<div class="word-card-container">
-    {unit_tag_html}
-    <p class="label-text">{LANG_CONFIG[selected_lang]["label"]}</p>
-    <p class="word-display">{current_word["word"]}</p>
-    <p style="color:#cbd5e1; font-size:12px; margin-top:20px;">●</p>
-</div>
-"""
-    else:
-        example_html = ""
-        example_text = current_word.get("example", "")
-        if example_text and str(example_text).strip():
-            # 顶格
-            example_html = f"""
-<div class="example-box">
-    <div class="example-origin">{example_text}</div>
-    <div class="example-trans">{current_word.get("example_cn","")}</div>
-</div>
-"""
-        # 顶格
-        card_html = f"""
-<div class="word-card-container">
-    {unit_tag_html}
-    <p class="label-text">中文释义</p>
-    <p class="meaning-display">{current_word["meaning"]}</p>
-    {example_html}
-</div>
-"""
-    st.markdown(card_html, unsafe_allow_html=True)
-
+    st.write("") 
     st.divider()
 
     # 功能按钮
     col_a, col_b = st.columns(2)
     with col_a:
+        st.markdown('<div class="func-btn-container">', unsafe_allow_html=True)
         if st.button(f"🔊 发音", use_container_width=True): 
             with st.spinner("."):
                 audio_data = generate_audio(current_word['word'], LANG_CONFIG[selected_lang]['code'])
                 if audio_data:
                     st.session_state.audio_bytes = audio_data
                     rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
         if st.session_state.audio_bytes:
             st.audio(st.session_state.audio_bytes, format="audio/mp3")
     
     with col_b:
+        st.markdown('<div class="func-btn-container">', unsafe_allow_html=True)
         if st.button("✨ AI 助学", use_container_width=True):
             with st.spinner("..."):
                 get_ai_help()
+        st.markdown('</div>', unsafe_allow_html=True)
 
     if st.session_state.ai_analysis:
         res = st.session_state.ai_analysis
@@ -438,12 +469,15 @@ if mode == "📖 卡片学习":
         st.info(f"🧠 **助记**: {res.get('mnemonic', '暂无')}")
         st.warning(f"💬 **场景**: {res.get('scenario', '暂无')}\n\n*{res.get('scenario_cn', '')}*")
         
+        st.markdown('<div class="ai-audio-btn">', unsafe_allow_html=True)
         if st.button("🔊 播放对话", key="ai_play"):
             with st.spinner("..."):
                 scenario_text = res.get('scenario', '')
                 if scenario_text:
                     st.session_state.ai_audio_bytes = generate_audio(scenario_text, LANG_CONFIG[selected_lang]['code'])
                     rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+        
         if st.session_state.ai_audio_bytes:
             st.audio(st.session_state.ai_audio_bytes, format="audio/mp3")
 
