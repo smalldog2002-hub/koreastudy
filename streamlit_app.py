@@ -5,6 +5,7 @@ import os
 import re
 import random
 import time
+import textwrap
 from gtts import gTTS
 from io import BytesIO
 
@@ -22,11 +23,11 @@ st.markdown("""
         font-family: 'Noto Sans SC', sans-serif;
     }
 
-    /* 1. 容器适配：对齐卡片与按钮 */
+    /* 1. 容器适配：限制最大宽度，让手机端和电脑端保持一致的 App 比例 */
     div.block-container {
-        padding-top: 2rem;
+        padding-top: 1rem;
         padding-bottom: 5rem;
-        max-width: 600px; /* 限制最大宽度，让手机端和电脑端保持一致的 App 比例 */
+        max-width: 600px; 
     }
 
     /* 2. 单词卡片容器 */
@@ -36,7 +37,7 @@ st.markdown("""
         border-radius: 24px;
         box-shadow: 0 15px 35px rgba(0,0,0,0.08);
         text-align: center;
-        margin-bottom: 20px; /* 减少卡片与按钮的间距 */
+        margin-bottom: 15px; /* 减少卡片与按钮的间距 */
         min-height: 320px;
         display: flex;
         flex-direction: column;
@@ -46,7 +47,7 @@ st.markdown("""
         border: 1px solid #f1f5f9;
     }
     
-    /* 3. 字体美化 */
+    /* 3. 卡片内元素样式 */
     .unit-tag {
         position: absolute;
         top: 15px;
@@ -67,7 +68,7 @@ st.markdown("""
         margin-bottom: 12px;
     }
     .word-display { 
-        font-size: 3.2rem !important; 
+        font-size: 3.5rem !important; 
         font-weight: 900 !important; 
         color: #1e293b; 
         margin: 10px 0; 
@@ -80,7 +81,7 @@ st.markdown("""
         margin: 5px 0; 
     }
     
-    /* 例句样式 */
+    /* 例句样式 - 修复显示问题 */
     .example-box {
         background-color: #f8fafc;
         padding: 16px;
@@ -105,80 +106,100 @@ st.markdown("""
         font-weight: 400;
     }
 
-    /* 4. 导航按钮布局 (Flexbox Magic) */
-    /* 定位第一个 stHorizontalBlock (导航栏) */
+    /* 4. 导航按钮布局 (关键修复：Flexbox 两端对齐) */
+    
+    /* 定位包含三个导航按钮的容器 (通常是页面上的第一个 horizontal block) */
     div[data-testid="stHorizontalBlock"]:nth-of-type(1) {
         align-items: center;
+        gap: 10px !important; /* 减小列间距 */
     }
     
     /* 左侧列：按钮左对齐 */
     div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(1) {
         display: flex;
-        justify-content: flex-start; /* 左对齐 */
+        justify-content: flex-start; 
     }
     
     /* 中间列：按钮居中 */
     div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(2) {
         display: flex;
-        justify-content: center; /* 居中 */
+        justify-content: center;
     }
     
     /* 右侧列：按钮右对齐 */
     div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(3) {
         display: flex;
-        justify-content: flex-end; /* 右对齐 */
+        justify-content: flex-end; 
     }
 
     /* 5. 按钮样式重塑 */
     .stButton > button {
-        border-radius: 14px;
+        border-radius: 12px;
         font-weight: 700;
         border: none;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         transition: transform 0.1s;
         background-color: white;
         color: #475569;
         height: auto !important;
-        padding: 12px 20px !important;
+        padding: 10px 20px !important;
     }
     .stButton > button:active {
         transform: scale(0.95);
         box-shadow: none;
     }
 
-    /* 左右箭头按钮特殊样式：更像图标 */
-    div[data-testid="column"]:nth-of-type(1) button, 
-    div[data-testid="column"]:nth-of-type(3) button {
+    /* === 导航按钮专用样式 === */
+    
+    /* 左右箭头：方形、大图标 */
+    div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(1) button, 
+    div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(3) button {
         background-color: white;
-        border: 1px solid #f1f5f9;
+        border: 1px solid #e2e8f0;
         color: #64748b;
-        width: 56px !important; /* 强制方形/圆形 */
-        height: 56px !important;
+        width: 52px !important;
+        height: 52px !important;
         padding: 0 !important;
-        border-radius: 20px !important; /* 圆角矩形 */
-        font-size: 24px !important;
+        border-radius: 16px !important;
+        font-size: 20px !important;
         display: flex;
         align-items: center;
         justify-content: center;
     }
 
-    /* 中间翻转按钮样式：胶囊形 */
-    div[data-testid="column"]:nth-of-type(2) button {
-        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-        color: white !important;
-        box-shadow: 0 8px 20px -4px rgba(79, 70, 229, 0.4);
-        padding: 12px 40px !important;
-        font-size: 16px !important;
+    /* 中间翻转按钮：胶囊形、自适应宽度、去除多余装饰 */
+    div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(2) button {
+        background: #ffffff;
+        color: #4f46e5 !important;
+        border: 1px solid #e0e7ff !important;
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1) !important;
+        padding: 12px 30px !important; /* 左右增加内边距 */
+        font-size: 15px !important;
         border-radius: 99px !important;
-        min-width: 140px;
+        width: auto !important; /* 宽度自适应 */
+        min-width: 120px;
+    }
+    
+    /* 翻转按钮文字图标 */
+    div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-testid="column"]:nth-of-type(2) button:before {
+        content: "🔄 "; 
+        font-size: 14px;
+        margin-right: 4px;
     }
 
-    /* 底部功能按钮样式 (发音 & AI) */
+    /* === 底部功能按钮样式 (发音 & AI) === */
+    /* 强制等高、灰色背景 */
     div[data-testid="stHorizontalBlock"]:nth-of-type(3) button {
-        background-color: #f1f5f9;
+        background-color: #f8fafc;
         color: #334155;
+        border: 1px solid #e2e8f0;
         border-radius: 16px;
-        height: 50px !important;
+        height: 54px !important;
+        font-size: 15px !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
     }
 
     /* 练习模式分数 */
@@ -375,38 +396,56 @@ if mode == "📖 卡片学习":
     if 'source_unit' in current_word:
         unit_tag_html = f'<div class="unit-tag">{current_word["source_unit"]}</div>'
 
-    # 去除了缩进，解决 HTML 代码显示问题
+    # 修复 HTML 渲染 bug：使用 textwrap.dedent 去除缩进
     if not st.session_state.flipped:
-        card_content = f"""<div class="word-card-container">{unit_tag_html}<p class="label-text">{LANG_CONFIG[selected_lang]["label"]}</p><p class="word-display">{current_word["word"]}</p><p style="color:#cbd5e1; font-size:12px; margin-top:20px; font-weight:700;">● ● ●</p></div>"""
+        card_html = textwrap.dedent(f"""
+            <div class="word-card-container">
+                {unit_tag_html}
+                <p class="label-text">{LANG_CONFIG[selected_lang]["label"]}</p>
+                <p class="word-display">{current_word["word"]}</p>
+                <p style="color:#cbd5e1; font-size:12px; margin-top:20px; font-weight:700;">● ● ●</p>
+            </div>
+        """)
     else:
         example_html = ""
         example_text = current_word.get("example", "")
         if example_text and str(example_text).strip():
-            example_html = f"""<div class="example-box"><div class="example-origin">{example_text}</div><div class="example-trans">{current_word.get("example_cn","")}</div></div>"""
+            example_html = textwrap.dedent(f"""
+            <div class="example-box">
+                <div class="example-origin">{example_text}</div>
+                <div class="example-trans">{current_word.get("example_cn","")}</div>
+            </div>
+            """)
         
-        card_content = f"""<div class="word-card-container">{unit_tag_html}<p class="label-text">中文释义</p><p class="meaning-display">{current_word["meaning"]}</p>{example_html}</div>"""
+        card_html = textwrap.dedent(f"""
+            <div class="word-card-container">
+                {unit_tag_html}
+                <p class="label-text">中文释义</p>
+                <p class="meaning-display">{current_word["meaning"]}</p>
+                {example_html}
+            </div>
+        """)
     
-    st.markdown(card_content, unsafe_allow_html=True)
+    st.markdown(card_html, unsafe_allow_html=True)
 
-    # --- 核心导航按钮 (CSS 已强制两端对齐) ---
-    c1, c2, c3 = st.columns([1, 2, 1]) # 中间列宽一点，给胶囊按钮留空间
+    # --- 导航按钮 (完美对齐) ---
+    # 使用 columns 布局，CSS 会处理具体的对齐方式
+    c1, c2, c3 = st.columns([1, 2, 1]) 
     with c1:
-        # 左箭头
-        if st.button("⬅", help="上一个"):
+        if st.button("⬅️", help="上一个"):
             st.session_state.current_index = (idx - 1) % len(words)
             st.session_state.flipped = False
             st.session_state.ai_analysis = None
             st.session_state.audio_bytes = None
             st.rerun()
     with c2:
-        # 中间翻转按钮 (去掉了眼睛图标)
-        btn_txt = "🔄 翻转卡片" if not st.session_state.flipped else "↩️ 返回正面"
+        # 去掉眼睛，使用胶囊样式
+        btn_txt = "翻转卡片" if not st.session_state.flipped else "返回正面"
         if st.button(btn_txt, use_container_width=True):
             st.session_state.flipped = not st.session_state.flipped
             st.rerun()
     with c3:
-        # 右箭头
-        if st.button("➡", help="下一个"):
+        if st.button("➡️", help="下一个"):
             st.session_state.current_index = (idx + 1) % len(words)
             st.session_state.flipped = False
             st.session_state.ai_analysis = None
@@ -415,7 +454,7 @@ if mode == "📖 卡片学习":
 
     st.divider()
 
-    # --- 功能按钮 ---
+    # --- 功能按钮 (发音 & AI) ---
     col_a, col_b = st.columns(2)
     with col_a:
         if st.button(f"🔊 发音"): 
@@ -449,10 +488,7 @@ else:
     
     st.markdown(f'<div style="text-align:center;"><span class="quiz-score">🏆 {st.session_state.quiz_score}</span></div>', unsafe_allow_html=True)
     
-    if 'source_unit' in current_word:
-        st.caption(f"当前题目来自：{current_word['source_unit']}")
-
-    st.markdown(f'<div class="quiz-question">请选择 "{current_word["word"]}" 的正确含义：</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="quiz-question">"{current_word["word"]}" 是什么意思？</div>', unsafe_allow_html=True)
     
     options = st.session_state.quiz_options
     
