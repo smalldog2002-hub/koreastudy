@@ -14,7 +14,10 @@ import {
   Loader2,
   MessageSquareQuote,
   Lightbulb,
-  Globe
+  Globe,
+  Settings,
+  X,
+  Key
 } from 'lucide-react';
 
 // 语言配置常量
@@ -25,7 +28,6 @@ const LANGUAGE_CONFIG = {
 };
 
 const App = () => {
-  // --- 基础状态 ---
   const [currentLang, setCurrentLang] = useState('ko'); 
   const [words, setWords] = useState([
     { word: "안녕하세요", meaning: "你好", example: "안녕하세요, 만나서 반갑습니다.", example_cn: "你好，很高兴见到你。" },
@@ -35,24 +37,61 @@ const App = () => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [viewMode, setViewMode] = useState('flashcard');
   const [score, setScore] = useState({ correct: 0, total: 0 });
-  const [quizOptions, setQuizOptions] = useState([]);
 
-  // --- Gemini API 状态 ---
+  // --- 安全性：API Key 仅存在内存中，默认为空 ---
+  const [apiKey, setApiKey] = useState(""); 
+  const [showSettings, setShowSettings] = useState(false);
+
   const [aiAnalysis, setAiAnalysis] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const apiKey = ""; // 运行时由环境提供
 
   const langMeta = useMemo(() => LANGUAGE_CONFIG[currentLang], [currentLang]);
 
-  // 语音合成功能
+  // --- 新增：自动加载对应语言的 JSON 文件 ---
+  useEffect(() => {
+    const fileName = `words_${currentLang}.json`;
+    console.log(`尝试加载: ${fileName}`);
+    
+    fetch(fileName)
+      .then(res => {
+        if (!res.ok) throw new Error("File not found");
+        return res.json();
+      })
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setWords(data);
+          setCurrentIndex(0);
+          setIsFlipped(false);
+          setAiAnalysis(null); // 切换词库时清空 AI 分析
+        }
+      })
+      .catch(err => {
+        console.log(`未找到 ${fileName}，使用默认示例`);
+        // 如果未找到文件，重置为简单的提示数据
+        setWords([
+          { 
+            word: "等待数据", 
+            meaning: `未找到 words_${currentLang}.json`, 
+            example: "请上传文件或确保JSON在同一目录", 
+            example_cn: "点击右上角上传按钮手动导入" 
+          }
+        ]);
+        setCurrentIndex(0);
+      });
+  }, [currentLang]);
+
   const speak = (text) => {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = langMeta.code;
     window.speechSynthesis.speak(utterance);
   };
 
-  // 调用 Gemini API
   const callGemini = async (prompt) => {
+    if (!apiKey) {
+      alert("请先点击右上角设置，输入你的 Gemini API Key");
+      return null;
+    }
+
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
     
     const fetchWithRetry = async (retries = 0) => {
@@ -84,7 +123,6 @@ const App = () => {
     return fetchWithRetry();
   };
 
-  // 获取 AI 深度解析
   const fetchAiAnalysis = async () => {
     if (isAnalyzing) return;
     setIsAnalyzing(true);
@@ -95,16 +133,15 @@ const App = () => {
       作为一个${langMeta.prompt}，请为${langMeta.name}单词 "${current.word}" (含义: ${current.meaning}) 提供深度学习分析。
       请以 JSON 格式返回以下字段：
       - root: 词根、词源或字形简析
-      - mnemonic: 趣味助记口诀（可以是谐音或联想）
-      - scenario: 一个简短的${langMeta.name}对话场景，包含该词
-      - scenario_cn: 对话场景的中文翻译
-      
-      仅返回 JSON 格式。
+      - mnemonic: 趣味助记口诀
+      - scenario: 一个简短对话场景
+      - scenario_cn: 对话场景的翻译
+      仅返回 JSON。
     `;
 
     try {
       const data = await callGemini(prompt);
-      setAiAnalysis(data);
+      if (data) setAiAnalysis(data);
     } catch (error) {
       console.error("AI Analysis failed", error);
     } finally {
@@ -114,7 +151,7 @@ const App = () => {
 
   useEffect(() => {
     setAiAnalysis(null);
-  }, [currentIndex, currentLang]);
+  }, [currentIndex]);
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -126,6 +163,7 @@ const App = () => {
           if (Array.isArray(json)) {
             setWords(json);
             setCurrentIndex(0);
+            setIsFlipped(false);
           }
         } catch (err) {
           console.error("Upload failed", err);
@@ -135,35 +173,12 @@ const App = () => {
     }
   };
 
-  const generateQuiz = () => {
-    if (words.length < 4) return;
-    const current = words[currentIndex];
-    const others = words.filter(w => w.word !== current.word)
-      .sort(() => 0.5 - Math.random())
-      .slice(0, 3);
-    const options = [...others, current].sort(() => 0.5 - Math.random());
-    setQuizOptions(options);
-  };
-
-  useEffect(() => {
-    if (viewMode === 'quiz') generateQuiz();
-  }, [currentIndex, viewMode, words]);
-
-  const handleQuizAnswer = (selectedWord) => {
-    if (selectedWord === words[currentIndex].word) {
-      setScore(s => ({ correct: s.correct + 1, total: s.total + 1 }));
-      setTimeout(nextCard, 1000);
-    } else {
-      setScore(s => ({ ...s, total: s.total + 1 }));
-    }
-  };
-
-  const nextCard = () => {
+  const handleNext = () => {
     setIsFlipped(false);
     setCurrentIndex((prev) => (prev + 1) % words.length);
   };
 
-  const prevCard = () => {
+  const handlePrev = () => {
     setIsFlipped(false);
     setCurrentIndex((prev) => (prev - 1 + words.length) % words.length);
   };
@@ -172,201 +187,131 @@ const App = () => {
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 font-sans p-4 md:p-8">
-      <header className="max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-        <div className="flex items-center gap-3">
-          <div className="bg-indigo-600 p-2 rounded-xl">
-            <Globe className="text-white w-8 h-8" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">语言 Master</h1>
-            <p className="text-xs text-slate-400 font-medium">{langMeta.name}学习模式</p>
+      {/* 设置浮层 */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative animate-in zoom-in-95 duration-200">
+            <button onClick={() => setShowSettings(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+              <X size={24} />
+            </button>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="bg-amber-100 p-2 rounded-xl text-amber-600"><Key size={20} /></div>
+              <h3 className="text-xl font-bold">API 安全配置</h3>
+            </div>
+            <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+              API Key 不会保存在代码中。请输入你的 Google AI Key，它仅保存在当前网页内存中，刷新后需重新输入。
+            </p>
+            <input 
+              type="password" 
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="粘贴你的 AI API Key..."
+              className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:border-indigo-500 transition-all mb-6"
+            />
+            <button onClick={() => setShowSettings(false)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all">
+              保存并返回
+            </button>
           </div>
         </div>
+      )}
 
+      {/* 顶部导航 */}
+      <header className="max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+        <div className="flex items-center gap-3">
+          <div className="bg-indigo-600 p-2 rounded-xl text-white"><Globe size={24} /></div>
+          <div><h1 className="text-xl font-bold tracking-tight">语言 Master</h1><p className="text-xs text-slate-400 font-medium">{langMeta.name}模式</p></div>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm mr-2">
             {Object.entries(LANGUAGE_CONFIG).map(([key, config]) => (
-              <button
-                key={key}
-                onClick={() => {
-                  setCurrentLang(key);
-                  setCurrentIndex(0);
-                }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentLang === key ? 'bg-indigo-100 text-indigo-700' : 'text-slate-400 hover:text-slate-600'}`}
-              >
-                {config.name}
-              </button>
+              <button key={key} onClick={() => { setCurrentLang(key); }} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentLang === key ? 'bg-indigo-100 text-indigo-700' : 'text-slate-400'}`}>{config.name}</button>
             ))}
           </div>
-          
-          <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-200">
-            <button onClick={() => setViewMode('flashcard')} className={`p-2 rounded-lg transition-all ${viewMode === 'flashcard' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400'}`}><RotateCw size={18} /></button>
-            <button onClick={() => setViewMode('quiz')} className={`p-2 rounded-lg transition-all ${viewMode === 'quiz' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400'}`}><CheckCircle2 size={18} /></button>
-            <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400'}`}><LayoutGrid size={18} /></button>
-          </div>
-
-          <label className="p-2 bg-white border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 shadow-sm">
-            <Upload size={18} className="text-slate-500" />
-            <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
-          </label>
+          <button onClick={() => setShowSettings(true)} className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 shadow-sm"><Settings size={18} className={apiKey ? "text-green-500" : "text-slate-500"} /></button>
+          <label className="p-2 bg-white border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 shadow-sm"><Upload size={18} className="text-slate-500" /><input type="file" accept=".json" onChange={handleFileUpload} className="hidden" /></label>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
           {/* 进度条 */}
-          <div className="mb-6 flex items-center gap-4">
-            <div className="flex-1 h-2 bg-slate-300 rounded-full overflow-hidden">
-              <div className="h-full bg-indigo-500 transition-all duration-500" style={{ width: `${((currentIndex + 1) / words.length) * 100}%` }} />
-            </div>
+          <div className="mb-6 flex items-center gap-4 px-2">
+            <div className="flex-1 h-2 bg-slate-300 rounded-full overflow-hidden"><div className="h-full bg-indigo-500 transition-all duration-500" style={{ width: `${((currentIndex + 1) / words.length) * 100}%` }} /></div>
             <span className="text-sm font-semibold text-slate-500">{currentIndex + 1} / {words.length}</span>
           </div>
 
-          {/* 核心展示区 */}
-          {viewMode === 'flashcard' && (
-            <div className="perspective-1000 h-[400px] relative">
+          {/* 卡片区域 */}
+          <div className="perspective-1000 h-[400px] relative group">
+            <div 
+              onClick={() => setIsFlipped(!isFlipped)}
+              className="w-full h-full cursor-pointer relative transition-all duration-700 transform-style-3d"
+              style={{ transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}
+            >
+              {/* 正面：默认显示 */}
               <div 
-                onClick={() => setIsFlipped(!isFlipped)}
-                className="w-full h-full cursor-pointer relative transform-style-3d"
+                className="absolute inset-0 bg-white rounded-[2.5rem] flex flex-col items-center justify-center p-8 border border-slate-200 shadow-xl backface-hidden"
               >
-                {/* 正面卡片 */}
-                <div 
-                  className={`absolute inset-0 bg-white rounded-3xl flex flex-col items-center justify-center p-8 border border-slate-200 shadow-xl transition-all duration-700 ease-in-out backface-hidden z-20 ${isFlipped ? 'opacity-0 [transform:rotateY(-180deg)]' : 'opacity-100 [transform:rotateY(0deg)]'}`}
-                  style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
-                >
-                  <span className="text-indigo-500 text-sm font-bold mb-4 tracking-widest uppercase">{langMeta.label}单词</span>
-                  <h2 className="text-5xl font-bold mb-6 text-center leading-tight">{currentWord.word}</h2>
-                  <button onClick={(e) => { e.stopPropagation(); speak(currentWord.word); }} className="p-4 bg-indigo-50 text-indigo-600 rounded-full hover:bg-indigo-100 transition-colors">
-                    <Volume2 size={32} />
-                  </button>
-                  <p className="mt-8 text-slate-400 text-sm">点击翻转查看含义</p>
-                </div>
-
-                {/* 反面卡片 - 修复镜像问题的核心逻辑 */}
-                <div 
-                  className={`absolute inset-0 bg-indigo-600 rounded-3xl flex flex-col items-center justify-center p-8 text-white shadow-xl transition-all duration-700 ease-in-out backface-hidden ${isFlipped ? 'opacity-100 [transform:rotateY(0deg)] z-30' : 'opacity-0 [transform:rotateY(180deg)] z-10'}`}
-                  style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
-                >
-                  <span className="text-indigo-200 text-sm font-bold mb-4 tracking-widest uppercase text-center w-full block">中文释义</span>
-                  <h2 className="text-4xl font-bold mb-8 text-center">{currentWord.meaning}</h2>
-                  {currentWord.example && (
-                    <div className="bg-white/10 p-6 rounded-2xl max-w-sm text-center">
-                      <p className="text-lg font-medium mb-2 leading-relaxed">{currentWord.example}</p>
-                      <p className="text-sm text-indigo-100 italic">{currentWord.example_cn}</p>
-                    </div>
-                  )}
-                </div>
+                <span className="text-indigo-500 text-xs font-black mb-6 tracking-[0.3em] uppercase opacity-50">{langMeta.label}单词</span>
+                <h2 className="text-6xl font-bold mb-8 text-center leading-tight text-slate-800">{currentWord.word}</h2>
+                <button onClick={(e) => { e.stopPropagation(); speak(currentWord.word); }} className="p-5 bg-indigo-50 text-indigo-600 rounded-full hover:bg-indigo-100 transition-all active:scale-90 shadow-sm border border-indigo-100"><Volume2 size={36} /></button>
+                <p className="mt-10 text-slate-300 text-[10px] font-black uppercase tracking-widest animate-pulse">点击翻转</p>
               </div>
-            </div>
-          )}
 
-          {viewMode === 'quiz' && (
-            <div className="bg-white p-8 rounded-3xl shadow-xl border border-slate-200 min-h-[400px]">
-               <div className="flex justify-between items-center mb-8">
-                 <h3 className="text-xl font-bold">请选择正确含义：</h3>
-                 <div className="flex items-center gap-2 text-green-600 font-bold bg-green-50 px-3 py-1 rounded-lg text-sm">
-                   <Trophy size={16} /> 准确率: {score.total > 0 ? Math.round((score.correct / score.total) * 100) : 0}%
-                 </div>
-               </div>
-               <div className="flex flex-col items-center mb-8">
-                  <h2 className="text-4xl font-bold mb-4 text-center">{currentWord.word}</h2>
-                  <button onClick={() => speak(currentWord.word)} className="text-indigo-500 hover:scale-110 transition-transform">
-                    <Volume2 size={24} />
-                  </button>
-               </div>
-               <div className="grid grid-cols-1 gap-3">
-                 {quizOptions.map((opt, idx) => (
-                   <button key={idx} onClick={() => handleQuizAnswer(opt.word)} className="w-full py-4 px-6 text-left border-2 border-slate-100 rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 transition-all font-medium text-lg">
-                     {idx + 1}. {opt.meaning}
-                   </button>
-                 ))}
-               </div>
-            </div>
-          )}
-
-          {viewMode === 'list' && (
-            <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
-              <div className="p-6 border-bottom border-slate-200 bg-slate-50/50">
-                <h3 className="font-bold flex items-center gap-2 text-slate-700">
-                  <BookOpen size={20}/> {langMeta.name}词库预览
-                </h3>
-              </div>
-              <div className="max-h-[500px] overflow-y-auto">
-                {words.map((w, i) => (
-                  <div key={i} className="flex items-center justify-between p-4 border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                    <div className="flex-1 pr-4">
-                      <div className="font-bold text-lg text-slate-800">{w.word}</div>
-                      <div className="text-slate-500 text-sm">{w.meaning}</div>
-                    </div>
-                    <button onClick={() => speak(w.word)} className="text-slate-400 hover:text-indigo-500 transition-colors"><Volume2 size={20} /></button>
+              {/* 反面：预先旋转180度 */}
+              <div 
+                className="absolute inset-0 bg-indigo-600 rounded-[2.5rem] flex flex-col items-center justify-center p-8 text-white shadow-2xl backface-hidden"
+                style={{ transform: 'rotateY(180deg)' }}
+              >
+                <span className="text-indigo-200 text-xs font-black mb-6 tracking-[0.3em] uppercase opacity-50">中文释义</span>
+                <h2 className="text-5xl font-bold mb-10 text-center text-white">{currentWord.meaning}</h2>
+                {currentWord.example && (
+                  <div className="bg-white/10 p-6 rounded-3xl max-w-sm text-center border border-white/20 backdrop-blur-sm shadow-inner">
+                    <p className="text-lg font-medium mb-2 leading-relaxed italic">"{currentWord.example}"</p>
+                    <p className="text-xs text-indigo-100/70 font-medium">{currentWord.example_cn}</p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
-          )}
+          </div>
 
-          {viewMode !== 'list' && (
-            <div className="flex justify-between mt-8 items-center">
-              <button onClick={prevCard} className="p-4 bg-white rounded-2xl shadow-sm border border-slate-200 text-slate-600 hover:bg-slate-100 transition-all active:scale-95 shadow-md"><ChevronLeft size={28} /></button>
-              <div className="text-slate-400 text-[10px] font-bold uppercase tracking-widest text-center max-w-[150px]">
-                点击卡片翻转，或使用按钮切换单词
-              </div>
-              <button onClick={nextCard} className="p-4 bg-white rounded-2xl shadow-sm border border-slate-200 text-slate-600 hover:bg-slate-100 transition-all active:scale-95 shadow-md"><ChevronRight size={28} /></button>
-            </div>
-          )}
+          <div className="flex justify-between mt-10 items-center px-4">
+            <button onClick={handlePrev} className="p-5 bg-white rounded-2xl shadow-md border border-slate-200 text-slate-600 hover:bg-indigo-50 transition-all active:scale-95"><ChevronLeft size={32} /></button>
+            <div className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] text-center opacity-40">SWIPE OR USE KEYS</div>
+            <button onClick={handleNext} className="p-5 bg-white rounded-2xl shadow-md border border-slate-200 text-slate-600 hover:bg-indigo-50 transition-all active:scale-95"><ChevronRight size={32} /></button>
+          </div>
         </div>
 
-        {/* AI 助学面板 */}
+        {/* AI 面板 */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-3xl shadow-lg border border-slate-200 p-6 flex flex-col h-full sticky top-8">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <Sparkles className="text-amber-500" />
-                <h3 className="text-lg font-bold">AI 助学解析</h3>
-              </div>
-              <span className="text-[10px] bg-slate-100 px-2 py-1 rounded-md text-slate-500 font-bold uppercase">{currentLang}模式</span>
+          <div className="bg-white rounded-[2rem] shadow-xl border border-slate-200 p-8 flex flex-col h-full sticky top-8 min-h-[550px]">
+            <div className="flex items-center justify-between mb-8 border-b border-slate-50 pb-4">
+              <div className="flex items-center gap-2"><Sparkles className="text-amber-500" /><h3 className="text-lg font-black tracking-tight">AI AGENT</h3></div>
+              <span className="text-[9px] bg-slate-100 px-2 py-1 rounded text-slate-400 font-bold uppercase tracking-tighter">Gemini 2.5</span>
             </div>
 
             {!aiAnalysis && !isAnalyzing && (
               <div className="flex flex-col items-center justify-center flex-1 py-12 text-center">
-                <div className="bg-slate-50 p-4 rounded-full mb-4"><BrainCircuit className="text-slate-300 w-12 h-12" /></div>
-                <p className="text-slate-500 text-sm mb-6 leading-relaxed">获取单词的词源分析、趣味记忆法和实战对话场景。</p>
-                <button onClick={fetchAiAnalysis} className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 shadow-md">
-                  <Sparkles size={18} /> ✨ 开启 AI 深度学习
-                </button>
+                <div className="bg-slate-50 p-6 rounded-full mb-6 border border-slate-100 shadow-inner"><BrainCircuit className="text-slate-300 w-16 h-16" /></div>
+                <p className="text-slate-500 text-sm mb-8 leading-relaxed font-medium px-4">解锁单词背后的含义。提供词源分析、记忆技巧及场景对话。</p>
+                <button onClick={fetchAiAnalysis} className="w-full py-4 bg-slate-900 text-white rounded-[1.25rem] font-black flex items-center justify-center gap-3 shadow-xl hover:bg-indigo-600 transition-all active:scale-95 tracking-widest text-xs"><Sparkles size={16} /> 开启 AI 深度学习</button>
               </div>
             )}
 
             {isAnalyzing && (
               <div className="flex flex-col items-center justify-center flex-1 py-12">
-                <Loader2 className="animate-spin text-indigo-600 w-10 h-10 mb-4" />
-                <p className="text-slate-500 font-medium animate-pulse text-sm">AI 正在努力思考中...</p>
+                <div className="relative mb-6"><Loader2 className="animate-spin text-indigo-600 w-16 h-16 opacity-20" /><Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-indigo-600 animate-pulse" size={24} /></div>
+                <p className="text-slate-400 font-black animate-pulse text-[10px] tracking-[0.2em] uppercase">Processing Analysis...</p>
               </div>
             )}
 
             {aiAnalysis && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-y-auto max-h-[60vh] pr-2 custom-scrollbar">
-                <section>
-                  <div className="flex items-center gap-2 text-indigo-600 font-bold text-xs mb-2"><BookOpen size={14} /> 词源/分析</div>
-                  <p className="text-slate-700 text-sm bg-slate-50 p-3 rounded-xl border border-slate-100 leading-relaxed">{aiAnalysis.root}</p>
-                </section>
-                <section>
-                  <div className="flex items-center gap-2 text-amber-600 font-bold text-xs mb-2"><Lightbulb size={14} /> 助记灵感</div>
-                  <div className="bg-amber-50 p-3 rounded-xl border border-amber-100 italic text-slate-800 text-sm">"{aiAnalysis.mnemonic}"</div>
-                </section>
-                <section>
-                  <div className="flex items-center gap-2 text-teal-600 font-bold text-xs mb-2"><MessageSquareQuote size={14} /> 场景对话</div>
-                  <div className="bg-teal-50 p-4 rounded-xl border border-teal-100">
-                    <p className="text-slate-800 font-medium mb-1 text-sm">{aiAnalysis.scenario}</p>
-                    <p className="text-xs text-slate-500 italic">{aiAnalysis.scenario_cn}</p>
-                  </div>
-                </section>
-                <button onClick={fetchAiAnalysis} className="w-full py-2 text-indigo-600 text-[10px] font-bold hover:bg-indigo-50 transition-all rounded-lg border border-indigo-100 uppercase tracking-widest">刷新 AI 解析</button>
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 overflow-y-auto max-h-[65vh] pr-2 scrollbar-hide">
+                <section><div className="flex items-center gap-2 text-indigo-600 font-black text-[10px] mb-3 tracking-[0.2em] uppercase"><BookOpen size={14} /> Etymology</div><p className="text-slate-700 text-sm bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100/50 leading-relaxed shadow-sm font-medium">{aiAnalysis.root}</p></section>
+                <section><div className="flex items-center gap-2 text-amber-600 font-black text-[10px] mb-3 tracking-[0.2em] uppercase"><Lightbulb size={14} /> Mnemonic</div><div className="bg-amber-50/50 p-4 rounded-2xl border border-amber-100/50 italic text-slate-800 text-sm shadow-sm font-medium">“{aiAnalysis.mnemonic}”</div></section>
+                <section><div className="flex items-center gap-2 text-teal-600 font-black text-[10px] mb-3 tracking-[0.2em] uppercase"><MessageSquareQuote size={14} /> Dialogue</div><div className="bg-teal-50/50 p-5 rounded-3xl border border-teal-100/50 shadow-sm"><p className="text-slate-800 font-bold mb-2 text-sm leading-relaxed">{aiAnalysis.scenario}</p><p className="text-[11px] text-slate-500 italic leading-relaxed font-medium opacity-80">{aiAnalysis.scenario_cn}</p></div></section>
+                <button onClick={fetchAiAnalysis} className="w-full py-2 text-slate-400 text-[9px] font-black hover:text-indigo-600 hover:bg-indigo-50 transition-all rounded-lg border border-slate-100 uppercase tracking-[0.3em] opacity-50 hover:opacity-100">Refresh Data</button>
               </div>
             )}
-            <div className="mt-auto pt-6 border-t border-slate-100">
-              <p className="text-[9px] text-slate-400 text-center uppercase tracking-widest">Powered by Gemini AI</p>
-            </div>
           </div>
         </div>
       </main>
@@ -375,8 +320,8 @@ const App = () => {
         .perspective-1000 { perspective: 1000px; }
         .backface-hidden { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
         .transform-style-3d { transform-style: preserve-3d; }
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}} />
     </div>
   );
