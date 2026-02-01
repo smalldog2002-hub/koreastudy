@@ -16,22 +16,22 @@ st.markdown("""
     <style>
     /* 1. 移动端容器适配：减少顶部留白，增加可视区域 */
     div.block-container {
-        padding-top: 2rem;
+        padding-top: 1rem;
         padding-bottom: 5rem;
-        padding-left: 1rem;
-        padding-right: 1rem;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
     }
 
-    /* 2. 单词卡片容器：默认 Desktop 样式 */
+    /* 2. 单词卡片容器 */
     .word-card-container {
         background-color: #ffffff !important;
-        padding: 40px 20px;
+        padding: 30px 15px;
         border-radius: 24px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.06);
         text-align: center;
         border: 1px solid #f1f5f9;
-        margin-bottom: 20px;
-        min-height: 350px; /* 增加高度 */
+        margin-bottom: 15px;
+        min-height: 320px;
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -43,35 +43,35 @@ st.markdown("""
     /* 3. 字体与元素基础样式 */
     .unit-tag {
         position: absolute;
-        top: 15px;
-        right: 15px;
+        top: 12px;
+        right: 12px;
         background-color: #f8fafc;
         color: #94a3b8;
-        padding: 6px 12px;
+        padding: 4px 10px;
         border-radius: 12px;
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 700;
         border: 1px solid #e2e8f0;
     }
     .label-text { 
         color: #6366f1 !important; 
         font-weight: 800; 
-        font-size: 14px; 
-        letter-spacing: 3px; 
+        font-size: 13px; 
+        letter-spacing: 2px; 
         text-transform: uppercase; 
-        margin-bottom: 20px;
-        opacity: 0.8;
+        margin-bottom: 15px;
+        opacity: 0.9;
     }
     .word-display { 
-        font-size: 64px !important; 
+        font-size: 56px !important; 
         font-weight: 900 !important; 
         color: #1e293b !important; 
-        margin: 10px 0 20px 0; 
+        margin: 5px 0 15px 0; 
         line-height: 1.1; 
-        word-break: keep-all; /* 防止韩语/日语被错误截断 */
+        word-break: keep-all; 
     }
     .meaning-display { 
-        font-size: 32px !important; 
+        font-size: 28px !important; 
         font-weight: 700 !important; 
         color: #4f46e5 !important; 
         margin: 0; 
@@ -79,21 +79,21 @@ st.markdown("""
     }
     .example-box {
         background-color: #f8fafc !important;
-        padding: 20px;
+        padding: 16px;
         border-radius: 16px;
-        margin-top: 25px;
-        border-left: 5px solid #6366f1;
+        margin-top: 20px;
+        border-left: 4px solid #6366f1;
         text-align: left;
         width: 100%;
         color: #334155 !important;
-        font-size: 16px;
-        line-height: 1.6;
+        font-size: 15px;
+        line-height: 1.5;
     }
     
-    /* 4. 按钮样式优化：更像原生 App 按钮 */
+    /* 4. 按钮基础样式 */
     .stButton>button {
         width: 100%;
-        border-radius: 16px;
+        border-radius: 14px;
         height: 3.5em;
         font-weight: 700;
         border: none;
@@ -101,78 +101,60 @@ st.markdown("""
         transition: transform 0.1s;
     }
     .stButton>button:active {
-        transform: scale(0.98);
+        transform: scale(0.96);
     }
 
-    /* 5. 练习模式分数与题目 */
+    /* 5. 练习模式样式 */
     .quiz-score {
-        font-size: 20px;
+        font-size: 18px;
         font-weight: 800;
         color: #10b981;
         background: #ecfdf5;
-        padding: 10px 20px;
+        padding: 8px 16px;
         border-radius: 20px;
         display: inline-block;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
     }
     .quiz-question {
-        font-size: 28px;
+        font-size: 24px;
         font-weight: 800;
         text-align: center;
-        margin: 10px 0 30px 0;
+        margin: 10px 0 25px 0;
         color: #1e293b;
     }
 
-    /* === 📱 移动端深度适配 (iPhone 15 Pro Max / Huawei Pura) === */
+    /* === 📱 移动端深度适配 (核心修改) === */
     @media only screen and (max-width: 600px) {
-        /* 调整卡片容器 */
-        .word-card-container {
-            padding: 30px 15px;
-            min-height: 280px; /* 稍微减小高度适应窄屏 */
-            margin-bottom: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        /* 强制所有列在移动端不换行 (Row Layout) */
+        div[data-testid="stHorizontalBlock"] {
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            gap: 0.5rem !important; /* 减小按钮间距 */
         }
         
-        /* 调整大字号，防止换行溢出 */
-        .word-display { 
-            font-size: 42px !important; /* 64px -> 42px */
+        /* 允许列宽度自动收缩 */
+        div[data-testid="column"] {
+            width: auto !important;
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
         }
-        .meaning-display { 
-            font-size: 26px !important; /* 36px -> 26px */
-        }
-        
-        /* 调整例句区域 */
-        .example-box {
-            padding: 15px;
-            font-size: 14px;
-            margin-top: 15px;
-        }
-        
-        /* 调整按钮高度，更适合手指触摸 */
+
+        /* 移动端按钮特殊处理：缩小文字，允许换行，减小内边距 */
         .stButton>button {
-            height: 4em; 
-            font-size: 16px;
+            height: auto !important;
+            min-height: 3.2em;
+            padding: 4px 2px !important;
+            font-size: 13px !important;
+            line-height: 1.2 !important;
+            white-space: normal !important; /* 允许文字在按钮内换行 */
         }
         
-        /* 调整 Quiz 模式 */
-        .quiz-question {
-            font-size: 22px;
-            margin-bottom: 20px;
-        }
+        /* 进一步缩小卡片字体以防溢出 */
+        .word-display { font-size: 42px !important; }
+        .meaning-display { font-size: 24px !important; }
         
-        /* 隐藏或缩小次要元素 */
-        .label-text {
-            font-size: 12px;
-            margin-bottom: 10px;
-        }
-        
-        /* 优化顶部单元标签 */
-        .unit-tag {
-            top: 10px;
-            right: 10px;
-            padding: 4px 8px;
-            font-size: 10px;
-        }
+        /* 隐藏不必要的 label 装饰以节省空间 */
+        .label-text { margin-bottom: 8px; font-size: 11px; }
     }
     </style>
     """, unsafe_allow_html=True)
@@ -368,12 +350,18 @@ def check_answer(selected_option):
     st.session_state.quiz_correct = is_correct
     if is_correct:
         st.session_state.quiz_score += 10
+    
+    # 提交答案时清空音频，确保下一题发音正确
+    st.session_state.audio_bytes = None
     st.session_state.quiz_answered = True
 
 def next_quiz():
     st.session_state.current_index = (st.session_state.current_index + 1) % len(words)
     st.session_state.quiz_answered = False
     st.session_state.quiz_options = [] 
+    
+    # 切换下一题清空音频
+    st.session_state.audio_bytes = None
     st.rerun()
 
 # --- 主界面逻辑 ---
@@ -419,21 +407,22 @@ if mode == "📖 卡片学习":
         """
     st.markdown(card_html, unsafe_allow_html=True)
 
+    # --- 导航按钮 (移动端强制在一行) ---
     c1, c2, c3 = st.columns([1, 2, 1])
     with c1:
-        if st.button("⬅️ 上一个"):
+        if st.button("⬅️", help="上一个"): # 缩短文本以适应手机
             st.session_state.current_index = (idx - 1) % len(words)
             st.session_state.flipped = False
             st.session_state.ai_analysis = None
             st.session_state.audio_bytes = None
             st.rerun()
     with c2:
-        btn_txt = "👁️ 显示正面" if st.session_state.flipped else "🔄 翻转查看解释"
-        if st.button(btn_txt, type="primary"):
+        btn_txt = "👁️" if st.session_state.flipped else "🔄 翻转"
+        if st.button(btn_txt, type="primary", use_container_width=True):
             st.session_state.flipped = not st.session_state.flipped
             st.rerun()
     with c3:
-        if st.button("下一个 ➡️"):
+        if st.button("➡️", help="下一个"): # 缩短文本以适应手机
             st.session_state.current_index = (idx + 1) % len(words)
             st.session_state.flipped = False
             st.session_state.ai_analysis = None
@@ -442,10 +431,12 @@ if mode == "📖 卡片学习":
 
     st.divider()
 
+    # --- 动作按钮 (移动端强制在一行) ---
     col_a, col_b = st.columns(2)
     with col_a:
-        if st.button(f"🔊 生成{selected_lang}发音"):
-            with st.spinner("正在生成语音..."):
+        # 缩短按钮文字以适应单行
+        if st.button(f"🔊 发音"): 
+            with st.spinner("生成语音..."):
                 audio_data = generate_audio(current_word['word'], LANG_CONFIG[selected_lang]['code'])
                 if audio_data:
                     st.session_state.audio_bytes = audio_data
@@ -453,7 +444,7 @@ if mode == "📖 卡片学习":
         if st.session_state.audio_bytes:
             st.audio(st.session_state.audio_bytes, format="audio/mp3")
     with col_b:
-        if st.button("✨ 获取 AI 深度助学"):
+        if st.button("✨ AI 助学"):
             with st.spinner("Gemini 正在思考..."):
                 get_ai_help()
 
