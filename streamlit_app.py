@@ -11,6 +11,13 @@ from io import BytesIO
 # --- 页面配置 ---
 st.set_page_config(page_title="语言 Master", page_icon="🦉", layout="centered", initial_sidebar_state="collapsed")
 
+# --- 兼容性处理 ---
+def rerun():
+    if hasattr(st, "rerun"):
+        st.rerun()
+    else:
+        st.experimental_rerun()
+
 # --- 核心样式美化 ---
 st.markdown("""
     <style>
@@ -21,7 +28,6 @@ st.markdown("""
         font-family: 'Noto Sans SC', sans-serif;
     }
 
-    /* 1. 容器全局适配 */
     div.block-container {
         padding-top: 1rem;
         padding-bottom: 5rem;
@@ -42,8 +48,7 @@ st.markdown("""
         align-items: center;
         position: relative;
         border: 1px solid #f1f5f9;
-        margin-bottom: 15px;
-        transition: all 0.3s ease;
+        margin-bottom: 20px; /* 卡片与控制栏的间距 */
     }
     
     /* 卡片内字体 */
@@ -105,7 +110,15 @@ st.markdown("""
         font-weight: 400;
     }
 
-    /* === 按钮通用样式 === */
+    /* === 导航控制栏布局 (箭头+翻转) === */
+    
+    /* 强制垂直居中对齐 */
+    div[data-testid="stHorizontalBlock"] {
+        align-items: center;
+        gap: 5px !important;
+    }
+    
+    /* 通用按钮基础 */
     .stButton > button {
         border: none;
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
@@ -117,40 +130,38 @@ st.markdown("""
         box-shadow: none;
     }
 
-    /* 左右箭头按钮样式 */
+    /* 左右箭头按钮：透明、大图标 */
     .nav-btn-container button {
         background: transparent !important;
-        border: none !important;
-        color: #94a3b8 !important;
+        border: 1px solid #f1f5f9 !important; /* 轻微边框增加触感区域 */
+        color: #cbd5e1 !important;
         font-size: 28px !important;
         padding: 0 !important;
-        height: 100% !important;
-        min-height: 60px !important;
+        height: 56px !important;
         width: 100% !important;
-        box-shadow: none !important;
+        border-radius: 16px !important;
         display: flex;
         align-items: center;
         justify-content: center;
     }
     .nav-btn-container button:hover {
         color: #6366f1 !important;
-        transform: scale(1.1);
+        border-color: #e0e7ff !important;
+        background: #f8fafc !important;
     }
 
-    /* 翻转按钮 */
+    /* 中间翻转按钮：胶囊形、突出显示 */
     .flip-btn-container button {
         background: #ffffff !important;
         color: #4f46e5 !important;
         border: 1px solid #e0e7ff !important;
         box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1) !important;
         border-radius: 99px !important;
-        padding: 8px 24px !important;
-        font-size: 14px !important;
-        font-weight: 700 !important;
-        width: auto !important;
-        min-width: 100px;
-        margin: 15px auto 0 auto !important;
-        display: block !important;
+        padding: 0 20px !important;
+        height: 56px !important;
+        font-size: 16px !important;
+        width: 100% !important;
+        white-space: nowrap;
     }
 
     /* 底部功能按钮 (发音 & AI) */
@@ -159,12 +170,10 @@ st.markdown("""
         color: #334155 !important;
         border: 1px solid #e2e8f0 !important;
         border-radius: 16px !important;
-        height: 48px !important;
+        height: 54px !important;
         font-size: 15px !important;
-        width: 100% !important;
     }
     
-    /* 练习模式分数 */
     .quiz-score {
         font-size: 20px;
         font-weight: 800;
@@ -172,53 +181,26 @@ st.markdown("""
         margin-bottom: 20px;
     }
 
-    /* === 📱 移动端深度适配 (核心修复) === */
+    /* === 📱 移动端深度适配 === */
     @media only screen and (max-width: 600px) {
-        /* 1. 调整容器内边距，利用全部宽度 */
-        div.block-container {
-            padding-left: 10px;
-            padding-right: 10px;
-            padding-top: 1rem;
-            overflow-x: hidden; /* 彻底禁止横向滚动 */
-        }
-
-        /* 2. 顶部导航栏 (三列) 强制不换行 */
-        /* 定位第1个 stHorizontalBlock (Nav) */
+        /* 导航栏不换行 */
         div[data-testid="stHorizontalBlock"]:nth-of-type(1) {
             flex-wrap: nowrap !important;
-            gap: 2px !important;
-            align-items: center !important;
         }
-        /* 左右箭头列宽固定 */
+        
+        /* 左右箭头列定宽，中间自适应 */
         div[data-testid="stHorizontalBlock"]:nth-of-type(1) [data-testid="column"]:nth-of-type(1),
         div[data-testid="stHorizontalBlock"]:nth-of-type(1) [data-testid="column"]:nth-of-type(3) {
-            flex: 0 0 40px !important;
-            min-width: 40px !important;
-            max-width: 40px !important;
+            flex: 0 0 60px !important;
+            min-width: 60px !important;
         }
-        /* 中间卡片列宽自适应 */
         div[data-testid="stHorizontalBlock"]:nth-of-type(1) [data-testid="column"]:nth-of-type(2) {
             flex: 1 1 auto !important;
-            min-width: 0 !important;
         }
 
-        /* 3. 底部功能栏 (两列) 强制不换行 */
-        /* 定位第2个 stHorizontalBlock (Func Buttons) */
-        div[data-testid="stHorizontalBlock"]:nth-of-type(2) {
-            flex-wrap: nowrap !important;
-            gap: 10px !important;
-        }
-
-        /* 4. 字体与元素缩小适配 */
-        .word-display { font-size: 2.2rem !important; }
-        .meaning-display { font-size: 1.6rem !important; }
-        .word-card-container { 
-            min-height: 260px; 
-            padding: 20px 5px;
-            margin: 0; /* 清除边距，防止撑大 */
-        }
-        .nav-btn-container button { font-size: 24px !important; }
-        .unit-tag { top: 10px; right: 10px; padding: 2px 6px; font-size: 10px; }
+        .word-display { font-size: 2.5rem !important; }
+        .meaning-display { font-size: 1.8rem !important; }
+        .word-card-container { min-height: 280px; padding: 30px 10px; }
     }
     </style>
     """, unsafe_allow_html=True)
@@ -325,8 +307,7 @@ current_word = words[idx]
 
 # --- 功能函数 ---
 def generate_audio(text, lang_code):
-    if not text or not text.strip():
-        return None
+    if not text or not text.strip(): return None
     try:
         tts = gTTS(text=text, lang=lang_code)
         fp = BytesIO()
@@ -394,10 +375,39 @@ if mode == "📖 卡片学习":
     progress = (idx + 1) / len(words)
     st.progress(progress)
     
-    # 顶部容器：导航栏 (3列)
-    c_left, c_card, c_right = st.columns([1, 8, 1], gap="small") 
+    # 1. 单词卡片区域
+    unit_tag_html = ""
+    if 'source_unit' in current_word:
+        unit_tag_html = f'<div class="unit-tag">{current_word["source_unit"]}</div>'
+
+    if not st.session_state.flipped:
+        card_html = f"""<div class="word-card-container">
+    {unit_tag_html}
+    <p class="label-text">{LANG_CONFIG[selected_lang]["label"]}</p>
+    <p class="word-display">{current_word["word"]}</p>
+    <p style="color:#cbd5e1; font-size:12px; margin-top:20px;">●</p>
+</div>"""
+    else:
+        example_html = ""
+        example_text = current_word.get("example", "")
+        if example_text and str(example_text).strip():
+            example_html = f"""<div class="example-box">
+    <div class="example-origin">{example_text}</div>
+    <div class="example-trans">{current_word.get("example_cn","")}</div>
+</div>"""
+        
+        card_html = f"""<div class="word-card-container">
+    {unit_tag_html}
+    <p class="label-text">中文释义</p>
+    <p class="meaning-display">{current_word["meaning"]}</p>
+    {example_html}
+</div>"""
+    st.markdown(card_html, unsafe_allow_html=True)
+
+    # 2. 导航控制栏 (箭头 - 翻转 - 箭头)
+    c1, c2, c3 = st.columns([1, 2.5, 1]) 
     
-    with c_left:
+    with c1:
         st.markdown('<div class="nav-btn-container">', unsafe_allow_html=True)
         if st.button("❮", help="上一个"):
             st.session_state.current_index = (idx - 1) % len(words)
@@ -408,36 +418,7 @@ if mode == "📖 卡片学习":
             rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-    with c_card:
-        unit_tag_html = ""
-        if 'source_unit' in current_word:
-            unit_tag_html = f'<div class="unit-tag">{current_word["source_unit"]}</div>'
-
-        if not st.session_state.flipped:
-            card_html = f"""<div class="word-card-container">
-    {unit_tag_html}
-    <p class="label-text">{LANG_CONFIG[selected_lang]["label"]}</p>
-    <p class="word-display">{current_word["word"]}</p>
-    <p style="color:#cbd5e1; font-size:12px; margin-top:20px;">●</p>
-</div>"""
-        else:
-            example_html = ""
-            example_text = current_word.get("example", "")
-            if example_text and str(example_text).strip():
-                example_html = f"""<div class="example-box">
-    <div class="example-origin">{example_text}</div>
-    <div class="example-trans">{current_word.get("example_cn","")}</div>
-</div>"""
-            
-            card_html = f"""<div class="word-card-container">
-    {unit_tag_html}
-    <p class="label-text">中文释义</p>
-    <p class="meaning-display">{current_word["meaning"]}</p>
-    {example_html}
-</div>"""
-        st.markdown(card_html, unsafe_allow_html=True)
-        
-        # 翻转按钮放在卡片下方中间
+    with c2:
         st.markdown('<div class="flip-btn-container">', unsafe_allow_html=True)
         btn_txt = "🔄 翻转卡片" if not st.session_state.flipped else "↩️ 返回正面"
         if st.button(btn_txt, use_container_width=True):
@@ -445,7 +426,7 @@ if mode == "📖 卡片学习":
             rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-    with c_right:
+    with c3:
         st.markdown('<div class="nav-btn-container">', unsafe_allow_html=True)
         if st.button("❯", help="下一个"):
             st.session_state.current_index = (idx + 1) % len(words)
@@ -459,7 +440,7 @@ if mode == "📖 卡片学习":
     st.write("") 
     st.divider()
 
-    # 功能按钮
+    # 3. 底部功能按钮
     col_a, col_b = st.columns(2)
     with col_a:
         st.markdown('<div class="func-btn-container">', unsafe_allow_html=True)
