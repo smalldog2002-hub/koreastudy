@@ -18,139 +18,182 @@ def rerun():
     else:
         st.experimental_rerun()
 
-# --- 核心样式美化 ---
+# --- 核心样式美化 (流光溢彩 + 毛玻璃) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap');
     
+    /* 1. 动态流光背景 */
+    @keyframes gradient {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    
     .stApp {
-        background-color: #f8fafc;
+        background: linear-gradient(-45deg, #e0e7ff, #f3e8ff, #dbeafe, #f0f9ff);
+        background-size: 400% 400%;
+        animation: gradient 15s ease infinite;
         font-family: 'Noto Sans SC', sans-serif;
     }
 
+    /* 2. 容器极致紧凑 */
     div.block-container {
-        padding-top: 1rem;
-        padding-bottom: 5rem;
+        padding-top: 1rem; /* 顶部极小留白 */
+        padding-bottom: 2rem;
         max-width: 600px;
     }
-
-    /* === 核心布局：箭头 + 卡片 === */
     
-    div[data-testid="stHorizontalBlock"] {
-        align-items: center !important;
+    /* 隐藏 Streamlit 默认的 Header (汉堡菜单除外) */
+    header[data-testid="stHeader"] {
+        background: transparent;
     }
 
-    /* 左右箭头按钮样式 */
-    .nav-btn-container button {
-        background: transparent !important;
-        border: none !important;
-        color: #94a3b8 !important;
-        font-size: 28px !important;
-        padding: 0 !important;
-        height: 100% !important;
-        min-height: 60px !important;
-        width: 100% !important;
-        box-shadow: none !important;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .nav-btn-container button:hover {
-        color: #6366f1 !important;
-        transform: scale(1.2);
-    }
-
-    /* 单词卡片容器 */
+    /* 3. 单词卡片：毛玻璃特效 (Glassmorphism) */
     .word-card-container {
-        background: #ffffff;
-        padding: 30px 10px;
-        border-radius: 24px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+        background: rgba(255, 255, 255, 0.75); /* 半透明白 */
+        backdrop-filter: blur(16px); /* 磨砂效果 */
+        -webkit-backdrop-filter: blur(16px);
+        padding: 40px 20px;
+        border-radius: 30px;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        border: 1px solid rgba(255, 255, 255, 0.6);
         text-align: center;
-        min-height: 300px;
+        min-height: 340px;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
         position: relative;
-        border: 1px solid #f1f5f9;
-        margin: 0; 
+        margin-bottom: 20px;
+        transition: transform 0.2s ease;
     }
     
-    /* 翻转按钮 */
-    .flip-btn-container button {
-        background: #ffffff !important;
-        color: #4f46e5 !important;
-        border: 1px solid #e0e7ff !important;
-        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1) !important;
-        border-radius: 99px !important;
-        padding: 8px 30px !important;
-        font-size: 14px !important;
-        font-weight: 700 !important;
-        width: auto !important;
-        min-width: 120px;
-        margin: 15px auto 0 auto !important;
-        display: block !important;
-    }
-
-    /* 卡片内字体 */
+    /* 字体优化 */
     .unit-tag {
         position: absolute;
-        top: 10px;
-        right: 10px;
-        background-color: #f1f5f9;
-        color: #cbd5e1;
-        padding: 2px 8px;
-        border-radius: 6px;
+        top: 15px;
+        right: 15px;
+        background: rgba(255,255,255,0.8);
+        color: #94a3b8;
+        padding: 4px 10px;
+        border-radius: 20px;
         font-size: 10px;
         font-weight: 700;
+        border: 1px solid rgba(255,255,255,0.5);
     }
     .label-text { 
-        color: #94a3b8; 
+        color: #818cf8; /* 更柔和的紫色 */
         font-weight: 800; 
-        font-size: 11px; 
-        letter-spacing: 2px; 
+        font-size: 12px; 
+        letter-spacing: 3px; 
         text-transform: uppercase; 
-        margin-bottom: 10px;
+        margin-bottom: 15px;
+        text-shadow: 0 1px 2px rgba(255,255,255,0.8);
     }
     .word-display { 
-        font-size: 3rem !important; 
+        font-size: 3.8rem !important; 
         font-weight: 900 !important; 
-        color: #1e293b; 
-        margin: 5px 0; 
+        color: #334155; 
+        margin: 10px 0; 
         line-height: 1.1; 
+        text-shadow: 2px 2px 0px rgba(255,255,255,1);
     }
     .meaning-display { 
-        font-size: 1.8rem !important; 
+        font-size: 2.2rem !important; 
         font-weight: 700 !important; 
-        color: #4f46e5; 
+        background: linear-gradient(90deg, #6366f1, #8b5cf6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
         margin: 5px 0; 
     }
     
-    /* 例句 */
+    /* 例句盒子：更透亮 */
     .example-box {
-        background-color: #f8fafc;
-        padding: 12px;
-        border-radius: 12px;
-        margin-top: 15px;
-        border-left: 3px solid #6366f1;
+        background: rgba(255,255,255,0.6);
+        padding: 16px;
+        border-radius: 16px;
+        margin-top: 20px;
+        border-left: 4px solid #818cf8;
         text-align: left;
-        width: 90%;
+        width: 100%;
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 6px;
     }
-    .example-origin { font-size: 14px; font-weight: 700; color: #334155; }
-    .example-trans { font-size: 12px; color: #64748b; }
+    .example-origin { color: #475569; font-size: 15px; font-weight: 700; line-height: 1.4; }
+    .example-trans { color: #94a3b8; font-size: 13px; font-weight: 400; }
+
+    /* === 按钮通用样式：透光感 === */
+    .stButton > button {
+        border: 1px solid rgba(255, 255, 255, 0.6) !important;
+        background: rgba(255, 255, 255, 0.65) !important;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        transition: all 0.2s !important;
+        font-weight: 700;
+        color: #64748b !important;
+    }
+    .stButton > button:hover {
+        background: rgba(255, 255, 255, 0.9) !important;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.05);
+        color: #6366f1 !important;
+    }
+    .stButton > button:active {
+        transform: scale(0.95);
+    }
+
+    /* 4. 导航布局 (三列垂直居中) */
+    div[data-testid="stHorizontalBlock"] {
+        align-items: center;
+        gap: 8px !important;
+    }
+
+    /* 左右箭头：纯图标，无背景 */
+    .nav-btn-container button {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        color: #94a3b8 !important;
+        font-size: 32px !important;
+        padding: 0 !important;
+        height: 60px !important;
+        width: 100% !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .nav-btn-container button:hover {
+        background: transparent !important;
+        color: #6366f1 !important;
+        transform: scale(1.2);
+    }
+
+    /* 中间翻转按钮：渐变胶囊 */
+    .flip-btn-container button {
+        background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%) !important;
+        color: white !important;
+        border: none !important;
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3) !important;
+        border-radius: 99px !important;
+        padding: 0 24px !important;
+        height: 50px !important;
+        font-size: 15px !important;
+        width: auto !important;
+        min-width: 120px;
+        margin: 10px auto 0 auto !important;
+        display: block !important;
+    }
+    .flip-btn-container button:hover {
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4) !important;
+    }
 
     /* 底部功能按钮 */
     .func-btn-container button {
-        background-color: #f1f5f9 !important;
-        color: #334155 !important;
-        border: 1px solid #e2e8f0 !important;
-        border-radius: 16px !important;
-        height: 48px !important;
-        font-weight: 700 !important;
+        border-radius: 20px !important;
+        height: 56px !important;
+        font-size: 15px !important;
     }
     
     .quiz-score {
@@ -160,25 +203,32 @@ st.markdown("""
         margin-bottom: 20px;
     }
 
-    /* === 📱 移动端强制优化 === */
+    /* === 📱 移动端深度适配 === */
     @media only screen and (max-width: 600px) {
+        div.block-container { padding-top: 0.5rem; } /* 顶部几乎无留白 */
+        
         div[data-testid="stHorizontalBlock"] {
             flex-wrap: nowrap !important;
-            gap: 5px !important;
+            gap: 4px !important;
         }
-        div[data-testid="column"]:nth-of-type(1), 
-        div[data-testid="column"]:nth-of-type(3) {
-            flex: 0 0 40px !important;
-            min-width: 40px !important;
+        /* 箭头列宽 */
+        div[data-testid="stHorizontalBlock"]:nth-of-type(1) [data-testid="column"]:nth-of-type(1),
+        div[data-testid="stHorizontalBlock"]:nth-of-type(1) [data-testid="column"]:nth-of-type(3) {
+            flex: 0 0 50px !important;
+            min-width: 50px !important;
         }
-        div[data-testid="column"]:nth-of-type(2) {
+        /* 中间卡片自适应 */
+        div[data-testid="stHorizontalBlock"]:nth-of-type(1) [data-testid="column"]:nth-of-type(2) {
             flex: 1 1 auto !important;
-            min-width: 0 !important;
         }
-        
-        .word-display { font-size: 2.2rem !important; }
-        .meaning-display { font-size: 1.5rem !important; }
-        .word-card-container { min-height: 260px; padding: 20px 5px; }
+
+        .word-display { font-size: 2.8rem !important; }
+        .meaning-display { font-size: 1.8rem !important; }
+        .word-card-container { 
+            min-height: 280px; 
+            padding: 30px 10px;
+            margin-bottom: 10px;
+        }
     }
     </style>
     """, unsafe_allow_html=True)
@@ -283,9 +333,8 @@ if st.session_state.current_index >= len(words): st.session_state.current_index 
 idx = st.session_state.current_index
 current_word = words[idx]
 
-# --- 功能函数 (核心修复：增加 robust 处理) ---
+# --- 功能函数 ---
 def generate_audio(text, lang_code):
-    # [核心修复] 强制转换为字符串并 strip，防止 list 类型导致的 AttributeError
     if not text or not str(text).strip(): return None
     try:
         tts = gTTS(text=str(text), lang=lang_code)
@@ -347,14 +396,13 @@ def next_quiz():
     rerun()
 
 # --- 主界面 ---
-st.title("🌐 语言 Master")
-st.caption(f"当前模式：{selected_lang} - {mode}")
+# 移除了顶部的 st.title 标题
 
 if mode == "📖 卡片学习":
     progress = (idx + 1) / len(words)
     st.progress(progress)
     
-    # 顶部容器：[左箭头] [  单词卡  ] [右箭头]
+    # 布局：左箭头 - 卡片 - 右箭头
     c_left, c_card, c_right = st.columns([1, 8, 1], gap="small") 
     
     with c_left:
@@ -388,7 +436,6 @@ if mode == "📖 卡片学习":
     <div class="example-origin">{example_text}</div>
     <div class="example-trans">{current_word.get("example_cn","")}</div>
 </div>"""
-            
             card_html = f"""<div class="word-card-container">
     {unit_tag_html}
     <p class="label-text">中文释义</p>
@@ -397,7 +444,6 @@ if mode == "📖 卡片学习":
 </div>"""
         st.markdown(card_html, unsafe_allow_html=True)
         
-        # 翻转按钮放在卡片下方中间
         st.markdown('<div class="flip-btn-container">', unsafe_allow_html=True)
         btn_txt = "🔄 翻转卡片" if not st.session_state.flipped else "↩️ 返回正面"
         if st.button(btn_txt, use_container_width=True):
@@ -419,7 +465,6 @@ if mode == "📖 卡片学习":
     st.write("") 
     st.divider()
 
-    # 功能按钮
     col_a, col_b = st.columns(2)
     with col_a:
         st.markdown('<div class="func-btn-container">', unsafe_allow_html=True)
