@@ -11,7 +11,7 @@ from io import BytesIO
 # --- 页面配置 ---
 st.set_page_config(page_title="语言 Master", page_icon="🦉", layout="centered", initial_sidebar_state="collapsed")
 
-# --- 兼容性处理 (修复 AttributeError) ---
+# --- 兼容性处理 ---
 def rerun():
     if hasattr(st, "rerun"):
         st.rerun()
@@ -40,7 +40,7 @@ st.markdown("""
         align-items: center !important;
     }
 
-    /* 左右箭头按钮样式：透明、大图标、悬浮感 */
+    /* 左右箭头按钮样式 */
     .nav-btn-container button {
         background: transparent !important;
         border: none !important;
@@ -51,7 +51,6 @@ st.markdown("""
         min-height: 60px !important;
         width: 100% !important;
         box-shadow: none !important;
-        transition: transform 0.2s, color 0.2s !important;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -59,15 +58,6 @@ st.markdown("""
     .nav-btn-container button:hover {
         color: #6366f1 !important;
         transform: scale(1.2);
-        background: transparent !important;
-    }
-    .nav-btn-container button:active {
-        transform: scale(0.9);
-        background: transparent !important;
-    }
-    .nav-btn-container button:focus {
-        box-shadow: none !important;
-        outline: none !important;
     }
 
     /* 单词卡片容器 */
@@ -84,10 +74,10 @@ st.markdown("""
         align-items: center;
         position: relative;
         border: 1px solid #f1f5f9;
-        margin: 0; /* 去除边距，由 columns gap 控制 */
+        margin: 0; 
     }
     
-    /* 翻转按钮 (单独一行) */
+    /* 翻转按钮 */
     .flip-btn-container button {
         background: #ffffff !important;
         color: #4f46e5 !important;
@@ -99,12 +89,8 @@ st.markdown("""
         font-weight: 700 !important;
         width: auto !important;
         min-width: 120px;
-        margin: 15px auto 0 auto !important; /* 上边距 */
+        margin: 15px auto 0 auto !important;
         display: block !important;
-    }
-    .flip-btn-container button:active {
-        background: #f5f3ff !important;
-        transform: scale(0.98);
     }
 
     /* 卡片内字体 */
@@ -165,30 +151,21 @@ st.markdown("""
         border-radius: 16px !important;
         height: 48px !important;
         font-weight: 700 !important;
-        box-shadow: none !important;
-    }
-    .func-btn-container button:hover {
-        background-color: #e2e8f0 !important;
     }
     
-    /* AI 场景播放按钮 */
-    .ai-audio-btn button {
-        background-color: #ecfdf5 !important;
-        color: #059669 !important;
-        border: 1px solid #d1fae5 !important;
-        margin-top: 10px !important;
-        height: 36px !important;
-        font-size: 13px !important;
+    .quiz-score {
+        font-size: 20px;
+        font-weight: 800;
+        color: #10b981;
+        margin-bottom: 20px;
     }
 
     /* === 📱 移动端强制优化 === */
     @media only screen and (max-width: 600px) {
-        /* 强制主区域三列不换行 */
         div[data-testid="stHorizontalBlock"] {
             flex-wrap: nowrap !important;
             gap: 5px !important;
         }
-        /* 箭头列宽度固定，中间卡片自适应 */
         div[data-testid="column"]:nth-of-type(1), 
         div[data-testid="column"]:nth-of-type(3) {
             flex: 0 0 40px !important;
@@ -202,13 +179,6 @@ st.markdown("""
         .word-display { font-size: 2.2rem !important; }
         .meaning-display { font-size: 1.5rem !important; }
         .word-card-container { min-height: 260px; padding: 20px 5px; }
-    }
-    
-    .quiz-score {
-        font-size: 20px;
-        font-weight: 800;
-        color: #10b981;
-        margin-bottom: 20px;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -313,11 +283,12 @@ if st.session_state.current_index >= len(words): st.session_state.current_index 
 idx = st.session_state.current_index
 current_word = words[idx]
 
-# --- 功能函数 ---
+# --- 功能函数 (核心修复：增加 robust 处理) ---
 def generate_audio(text, lang_code):
-    if not text or not text.strip(): return None
+    # [核心修复] 强制转换为字符串并 strip，防止 list 类型导致的 AttributeError
+    if not text or not str(text).strip(): return None
     try:
-        tts = gTTS(text=text, lang=lang_code)
+        tts = gTTS(text=str(text), lang=lang_code)
         fp = BytesIO()
         tts.write_to_fp(fp)
         return fp.getvalue()
@@ -383,7 +354,7 @@ if mode == "📖 卡片学习":
     progress = (idx + 1) / len(words)
     st.progress(progress)
     
-    # 1. 顶部容器：[左箭头] [  单词卡  ] [右箭头]
+    # 顶部容器：[左箭头] [  单词卡  ] [右箭头]
     c_left, c_card, c_right = st.columns([1, 8, 1], gap="small") 
     
     with c_left:
@@ -403,7 +374,6 @@ if mode == "📖 卡片学习":
             unit_tag_html = f'<div class="unit-tag">{current_word["source_unit"]}</div>'
 
         if not st.session_state.flipped:
-            # [核心修复] 使用无缩进的 f-string，防止 HTML 被解析为代码块
             card_html = f"""<div class="word-card-container">
     {unit_tag_html}
     <p class="label-text">{LANG_CONFIG[selected_lang]["label"]}</p>
@@ -414,13 +384,11 @@ if mode == "📖 卡片学习":
             example_html = ""
             example_text = current_word.get("example", "")
             if example_text and str(example_text).strip():
-                # [核心修复] 使用无缩进的 f-string
                 example_html = f"""<div class="example-box">
     <div class="example-origin">{example_text}</div>
     <div class="example-trans">{current_word.get("example_cn","")}</div>
 </div>"""
             
-            # [核心修复] 使用无缩进的 f-string
             card_html = f"""<div class="word-card-container">
     {unit_tag_html}
     <p class="label-text">中文释义</p>
@@ -451,7 +419,7 @@ if mode == "📖 卡片学习":
     st.write("") 
     st.divider()
 
-    # 2. 底部功能按钮
+    # 功能按钮
     col_a, col_b = st.columns(2)
     with col_a:
         st.markdown('<div class="func-btn-container">', unsafe_allow_html=True)
